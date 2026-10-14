@@ -38,8 +38,9 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    # На стенде фабрики (Docker выкладки) - WEB_BIND=0.0.0.0 и свой WEB_PORT.
     ports:
-      - "127.0.0.1:${WEB_PORT:-8090}:80"
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8090}:80"
 
 volumes:
   db:
