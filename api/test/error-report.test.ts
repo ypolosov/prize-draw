@@ -15,6 +15,8 @@ describe('сбор ошибок API', () => {
     const e = errorEvent(new TypeError('сломалось'), { method: 'POST', url: '/api/draws/12/entries' }, 'v1.0.0');
     expect(e.release).toBe('v1.0.0');
     expect(e.transaction).toBe('POST /api/draws/:id/entries');
+    expect(e.culprit).toBe('POST /api/draws/:id/entries');
+    expect(e.culprit).toBe(e.transaction);
     const ex = (e.exception as { values: { type: string; value: string; stacktrace: { frames: unknown[] } }[] })
       .values[0];
     expect(ex?.type).toBe('TypeError');

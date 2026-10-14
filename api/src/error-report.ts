@@ -47,6 +47,7 @@ export function errorEvent(
   now = new Date(),
 ): Record<string, unknown> {
   const err = error instanceof Error ? error : new Error(String(error));
+  const place = `${req.method ?? ''} ${(req.url ?? '').replace(/\d+/g, ':id')}`.trim();
   return {
     event_id: randomUUID().replaceAll('-', ''),
     timestamp: now.toISOString(),
@@ -54,7 +55,8 @@ export function errorEvent(
     level: 'error',
     release: release || undefined,
     environment: 'stand',
-    transaction: `${req.method ?? ''} ${(req.url ?? '').replace(/\d+/g, ':id')}`.trim(),
+    transaction: place,
+    culprit: place,
     request: { method: req.method, url: req.url },
     exception: { values: [{ type: err.name, value: err.message, stacktrace: { frames: frames(err.stack ?? '') } }] },
   };
