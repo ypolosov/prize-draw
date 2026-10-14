@@ -1,0 +1,46 @@
+# Розыгрыш призов: база, API, веб. CI собирает образы на месте (docker compose up --build);
+# стенд берёт готовые образы из GHCR по тегу TAG (коммит main).
+name: prize-draw
+
+services:
+  db:
+    image: docker.io/library/postgres:17.11-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: prize_draw
+      POSTGRES_USER: prize_draw
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prize_draw}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "prize_draw"]
+      interval: 3s
+      retries: 20
+
+  api:
+    image: ghcr.io/ypolosov/prize-draw-api:${TAG:-local}
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://prize_draw:${DB_PASSWORD:-prize_draw}@db:5432/prize_draw
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/ypolosov/prize-draw-web:${TAG:-local}
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    # На стенде фабрики (Docker выкладки) - WEB_BIND=0.0.0.0 и свой WEB_PORT.
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8090}:80"
+
+volumes:
+  db:

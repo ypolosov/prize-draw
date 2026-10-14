@@ -1,0 +1,58 @@
+# CI розыгрыша призов: команды проверок объявлены в .factory/config.yml и package.json.
+# Действия сторонних авторов закреплены по SHA; образы - точными тегами.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    container: docker.io/library/node:24.21.0-bookworm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker compose up -d --build --wait
+      - run: >
+          docker run --rm --network host -e CI=1 -e E2E_BASE_URL=http://127.0.0.1:8090
+          -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v1.63.0-noble
+          sh -c 'npm ci --no-audit --no-fund && npm run e2e'
+      - if: failure()
+        run: docker compose logs
+
+  # Образы для стенда: только из main и только после зелёных проверок.
+  images:
+    if: github.event_name == 'push'
+    needs: [check, e2e]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for c in api web; do
+            img=ghcr.io/ypolosov/prize-draw-$c
+            docker build -f "$c/Dockerfile" --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+              -t "$img:$GITHUB_SHA" -t "$img:main" .
+            docker push "$img:$GITHUB_SHA"
+            docker push "$img:main"
+          done

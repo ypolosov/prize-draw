@@ -1,0 +1,9 @@
+# Настройки фабрики для репозитория: меняет только человек (страж фабрики не публикует
+# изменения .factory/ и .github/ от агентов).
+# Команды проверок цели: фабрика и CI вызывают их, инструменты - выбор цели.
+checks:
+  lint: npm run lint
+  format: npm run format:check
+  typecheck: npm run typecheck
+  test: npm test
+  e2e: npm run e2e
