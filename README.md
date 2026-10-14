@@ -14,7 +14,14 @@
 - R5. Не больше одного приза одному участнику в розыгрыше.
 - R6. Приз подтверждают за 3 дня, иначе он не востребован.
 
-## Состояние
+## Устройство
 
-Каркас приложения, CI и выкладка появятся следующим этапом демо. Пока в репозитории только
-описание и правила для агентов ([AGENTS.md](AGENTS.md)).
+- `web/` - React и Vite, в образе - nginx; `api/` - NestJS и PostgreSQL; `e2e/` - Playwright.
+- Решения - [docs/adr](docs/adr); правила для агентов - [AGENTS.md](AGENTS.md).
+- Проверки: `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`, `npm run e2e`
+  (объявлены в `.factory/config.yml`).
+
+```sh
+docker compose up -d --build --wait     # http://127.0.0.1:8090
+E2E_BASE_URL=http://127.0.0.1:8090 npm run e2e
+```

@@ -1,0 +1,29 @@
+{
+  "name": "prize-draw",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "api",
+    "web",
+    "e2e"
+  ],
+  "scripts": {
+    "lint": "biome lint . && depcruise --config .dependency-cruiser.cjs api/src web/src",
+    "format:check": "biome format .",
+    "format": "biome check --write .",
+    "typecheck": "tsc -p api --noEmit && tsc -p web && tsc -p e2e",
+    "test": "vitest run",
+    "build": "npm run build -w api && npm run build -w web",
+    "e2e": "npm test -w e2e"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "24.19.0",
+    "dependency-cruiser": "18.5.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
