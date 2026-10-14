@@ -25,6 +25,11 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://prize_draw:${DB_PASSWORD:-prize_draw}@db:5432/prize_draw
+      # Сбор ошибок: на стенде фабрики DSN GlitchTip даёт служба выкладки; в CI сбора нет.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_RELEASE: ${TAG:-local}
+    extra_hosts:
+      - "glitchtip:host-gateway"
     depends_on:
       db:
         condition: service_healthy
