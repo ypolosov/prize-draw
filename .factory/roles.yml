@@ -16,11 +16,18 @@ holders:
       confluence: "557058:370b8b84-3d8f-4388-b85d-da08ab637c0e"
       github: ypolosov
       mcp: default # ключ MCP фабрики без имени учётки
+  # ИИ-персонаж для записи демо: своя учётка бота Discord, а не вебхук.
+  pm-bot:
+    kind: ai
+    name: PM (ИИ)
+    accounts:
+      discord: "1560352838008316026"
+
 
 # Пока команду демо играет владелец: все роли людей - у него.
 roles:
   product-owner: [yuriy]
-  project-manager: [yuriy]
+  project-manager: [yuriy, pm-bot]
   architect: [yuriy]
   designer: [yuriy]
   developer: [yuriy]
