@@ -18,7 +18,7 @@
     "test": "vitest run",
     "build": "npm run build -w api && npm run build -w web",
     "e2e": "npm test -w e2e",
-    "spec:validate": "openspec validate --all --strict"
+    "spec:validate": "openspec schema validate factory && openspec validate --all --strict"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

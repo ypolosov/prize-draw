@@ -1,6 +1,6 @@
 name: factory
 version: 1
-description: Схема фабрики - замысел → требования → архитектура → задачи → план проверки
+description: Схема фабрики - замысел -> требования -> архитектура -> задачи -> план проверки
 artifacts:
   - id: proposal
     generates: proposal.md
@@ -165,7 +165,7 @@ artifacts:
       - **Context**: Only the current state and constraints needed to explain the approach. Reference the proposal for motivation instead of restating it (e.g., "See proposal.md - Why").
       - **Goals / Non-Goals**: What this design achieves and explicitly excludes. Don't restate the proposal's scope - add only design-level boundaries.
       - **Decisions**: Key technical choices with rationale (why X over Y?). Include alternatives considered for each decision.
-      - **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation
+      - **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] -> Mitigation
       - **Migration Plan**: Steps to deploy, rollback strategy (if applicable)
       - **Open Questions**: Unknowns that can safely be answered later without
         changing the specs, the approach, or the task breakdown. Omit if none.
@@ -247,17 +247,18 @@ artifacts:
       Создай план проверки: чем подтверждается каждое требование изменения.
 
       Разделы:
-      - **Приёмочные сценарии**: для каждого сценария из specs - номер задачи из tasks.md,
-        файл Gherkin `features/<возможность>.feature` и что именно проверяется снаружи
-        (HTTP-запрос и ожидаемый ответ). Сценарии пишет роль tests до разработки на русском
-        Gherkin, у каждого сценария метка пункта `@task-X.Y`; разработчик их не меняет;
-        сценарии пункта становятся обязательными, когда пункт взят в работу.
-      - **Модульные тесты**: что покрывают тесты разработчика в `test/*.test.ts`.
-      - **Мутационное тестирование**: какие модули `src/` проверяются и порог доли убитых мутантов.
-      - **Нефункциональные проверки**: доступность (`GET /health`), ошибки, безопасность - если затронуты.
+      - **Сквозные проверки**: для каждого сценария из specs - номер задачи из tasks.md,
+        файл Playwright `e2e/tests/<возможность>.spec.ts` и что именно проверяется снаружи
+        (запрос к API и ответ или действие на экране и что на нём видно). Сквозную проверку
+        пишет исполнитель задачи экрана или API вместе с задачей.
+      - **Модульные тесты**: что покрывают тесты исполнителя в `api/test/*.test.ts` (Vitest).
+        Тесты пишутся до кода: фабрика проверяет, что они падают на коде базы и проходят с
+        изменением.
+      - **Нефункциональные проверки**: доступность стенда, ошибки (GlitchTip), безопасность -
+        если затронуты.
 
       Номера задач должны совпадать с tasks.md. У каждого сценария из specs должна быть
-      строка в таблице приёмочных тестов.
+      строка в таблице сквозных проверок.
     requires:
       - tasks
 
@@ -267,3 +268,6 @@ apply:
   instruction: |
     Read context files, work through pending tasks, mark complete as you go.
     Pause if you hit blockers or need clarification.
+    В фабрике изменение выполняют агенты по задачам Jira: одна задача tasks.md - один PR, и
+    агент openspec/ не меняет. Отметки в tasks.md ставит человек при архивации изменения,
+    когда задачи сделаны и выложены; до этого статус задачи - в Jira.
