@@ -20,11 +20,20 @@ const ok = (cwd, ...args) => {
   }
 };
 
-// Не хватает артефактов, без которых агенту нельзя начинать (applyRequires схемы).
+// Не хватает артефактов, без которых агенту нельзя начинать: то, что требует apply, и всё, от
+// чего оно зависит. Дизайн - по надобности (так в схеме), пропущенное (skipped) не нужно.
+const OPTIONAL = new Set(['design']);
 function missing(cwd, change) {
   const s = JSON.parse(run(cwd, 'status', '--change', change, '--json'));
-  const done = new Set(s.artifacts.filter((a) => a.status === 'done').map((a) => a.id));
-  return s.applyRequires.filter((id) => !done.has(id));
+  const byId = new Map(s.artifacts.map((a) => [a.id, a]));
+  const need = new Set();
+  const walk = (id) => {
+    if (need.has(id) || OPTIONAL.has(id)) return;
+    need.add(id);
+    for (const r of byId.get(id)?.requires ?? []) walk(r);
+  };
+  for (const id of s.applyRequires) walk(id);
+  return [...need].filter((id) => !['done', 'skipped'].includes(byId.get(id)?.status));
 }
 
 function changes(cwd) {
@@ -65,8 +74,8 @@ const SAMPLE = {
     '# Test Plan\n\n## Сквозные проверки\n\n| Задача | Сценарий | Файл | Что проверяется |\n|---|---|---|---|\n| 1.1 | Приз не подтверждён | e2e/tests/redraw.spec.ts | повтор и новый победитель |\n',
 };
 
-// Пример во временной копии openspec/: хорошее изменение готово, без плана проверки - не готово,
-// требование без SHALL отклоняется.
+// Пример во временной копии openspec/: хорошее изменение готово, без плана проверки или без
+// замысла - не готово, требование без SHALL отклоняется.
 function smoke() {
   const tmp = mkdtempSync(join(tmpdir(), 'spec-'));
   try {
@@ -86,6 +95,9 @@ function smoke() {
     rmSync(join(dir, 'test-plan.md'));
     if (!missing(tmp, name).includes('test-plan')) fails.push('изменение без плана проверки сочтено готовым');
     writeFileSync(join(dir, 'test-plan.md'), SAMPLE['test-plan.md']);
+    rmSync(join(dir, 'proposal.md'));
+    if (!missing(tmp, name).includes('proposal')) fails.push('изменение без замысла сочтено готовым');
+    writeFileSync(join(dir, 'proposal.md'), SAMPLE['proposal.md']);
     writeFileSync(
       join(dir, 'specs', 'redraw', 'spec.md'),
       SAMPLE['specs/redraw/spec.md'].replace('The system SHALL', 'Система'),
