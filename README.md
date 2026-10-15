@@ -17,7 +17,8 @@
 ## Устройство
 
 - `web/` - React и Vite, в образе - nginx; `api/` - NestJS и PostgreSQL; `e2e/` - Playwright.
-- Решения - [docs/adr](docs/adr); правила для агентов - [AGENTS.md](AGENTS.md).
+- Решения - [docs/adr](docs/adr); правила для агентов - [AGENTS.md](AGENTS.md); спецификации и
+  изменения - OpenSpec в [openspec](openspec) (`npm run spec:validate`).
 - Проверки: `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`, `npm run e2e`
   (объявлены в `.factory/config.yml`).
 
