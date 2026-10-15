@@ -16,47 +16,57 @@ holders:
       confluence: "557058:370b8b84-3d8f-4388-b85d-da08ab637c0e"
       github: ypolosov
       mcp: default # ключ MCP фабрики без имени учётки
-  # ИИ-персонажи для видео-демо: у каждого своя учётка бота Discord, а не вебхук.
+  # ИИ-персонажи для видео-демо: свои учётки - бот Discord и пользователь Atlassian (группа ai-personas).
   pm-bot:
     kind: ai
     name: PM (ИИ)
     accounts:
       discord: "1560352838008316026"
+      jira: "712020:63480dfc-cc04-4e6b-8f57-f1c9929f0c89"
   po-bot:
     kind: ai
     name: PO (ИИ)
     accounts:
       discord: "1560380065907220552"
+      jira: "712020:d3f88f83-dcbc-47dd-a6ce-032bd266ee21"
+      confluence: "712020:d3f88f83-dcbc-47dd-a6ce-032bd266ee21"
   architect-bot:
     kind: ai
     name: Архитектор (ИИ)
     accounts:
       discord: "1560380641571508308"
+      jira: "712020:60a01f69-2ed8-4e0b-a353-b5cdebb46f2e"
+      confluence: "712020:60a01f69-2ed8-4e0b-a353-b5cdebb46f2e"
   designer-bot:
     kind: ai
     name: Дизайнер (ИИ)
     accounts:
       discord: "1560381040244170862"
+      jira: "712020:28c9e50f-44b7-4de5-8f75-5b4e5b245871"
   frontend-bot:
     kind: ai
     name: Фронтенд (ИИ)
     accounts:
       discord: "1560381356507398296"
+      jira: "712020:47ae87fe-7e13-4728-8ea0-f21c42af68bb"
   backend-bot:
     kind: ai
     name: Бэкенд (ИИ)
     accounts:
       discord: "1560381707440627824"
+      jira: "712020:41e37ff7-488f-49d0-84fc-78be0d419a58"
   qa-bot:
     kind: ai
     name: QA (ИИ)
     accounts:
       discord: "1560377729524826262"
+      jira: "712020:4246dca1-3b5d-4ded-8888-7c30d2cadc6c"
   devops-bot:
     kind: ai
     name: DevOps (ИИ)
     accounts:
       discord: "1560382022826983495"
+      jira: "712020:3f787141-f967-45cc-bf8b-9eb71e7c01b4"
 
 
 # Роли людей пока держит владелец. ИИ-персонажи держат свои роли-помощники (<роль>-ai):
