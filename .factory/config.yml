@@ -8,3 +8,13 @@ checks:
   test: npm test
   e2e: npm run e2e
   spec: npm run spec:validate
+
+# Роли агентов фабрики: метка agent:frontend или agent:backend на задаче. Страж фабрики не
+# публикует изменение роли вне её путей; метка agent - разработчик на весь репозиторий.
+roles:
+  frontend:
+    paths:
+      allowed: [web/, e2e/]
+  backend:
+    paths:
+      allowed: [api/]
