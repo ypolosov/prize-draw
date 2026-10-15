@@ -58,11 +58,18 @@ function check(cwd) {
     }
   }
   if (failed.length) return failed;
-  return changes(cwd)
-    .map((c) => [c, missing(cwd, c)])
-    .filter(([, m]) => m.length)
-    .map(([c, m]) => `изменение ${c} не готово к работе агентов: нет ${m.join(', ')}`);
+  return [
+    // Фабрика находит изменение задачи по ключу в начале имени: draw-12-redraw для DRAW-12.
+    ...changes(cwd)
+      .filter((c) => !KEYED.test(c))
+      .map((c) => `изменение ${c}: имя без ключа задачи - нужно <ключ>-<имя>, например draw-12-redraw`),
+    ...changes(cwd)
+      .map((c) => [c, missing(cwd, c)])
+      .filter(([, m]) => m.length)
+      .map(([c, m]) => `изменение ${c} не готово к работе агентов: нет ${m.join(', ')}`),
+  ];
 }
+const KEYED = /^[a-z][a-z0-9]*-\d+(-[a-z0-9]+)*$/;
 
 const SAMPLE = {
   'proposal.md':
@@ -75,7 +82,7 @@ const SAMPLE = {
 };
 
 // Пример во временной копии openspec/: хорошее изменение готово, без плана проверки или без
-// замысла - не готово, требование без SHALL отклоняется.
+// замысла - не готово, требование без SHALL и имя без ключа задачи отклоняются.
 function smoke() {
   const tmp = mkdtempSync(join(tmpdir(), 'spec-'));
   try {
@@ -103,6 +110,10 @@ function smoke() {
       SAMPLE['specs/redraw/spec.md'].replace('The system SHALL', 'Система'),
     );
     if (ok(tmp, 'validate', name, '--strict')) fails.push('требование без SHALL принято');
+    writeFileSync(join(dir, 'specs', 'redraw', 'spec.md'), SAMPLE['specs/redraw/spec.md']);
+    cpSync(dir, join(tmp, 'openspec', 'changes', 'add-redraw'), { recursive: true });
+    if (!check(tmp).some((p) => p.startsWith('изменение add-redraw: имя без ключа')))
+      fails.push('изменение без ключа задачи в имени принято');
     return fails.map((f) => `пример схемы: ${f}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
