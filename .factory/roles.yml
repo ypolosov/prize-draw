@@ -16,18 +16,54 @@ holders:
       confluence: "557058:370b8b84-3d8f-4388-b85d-da08ab637c0e"
       github: ypolosov
       mcp: default # ключ MCP фабрики без имени учётки
-  # ИИ-персонаж для записи демо: своя учётка бота Discord, а не вебхук.
+  # ИИ-персонажи для видео-демо: у каждого своя учётка бота Discord, а не вебхук.
   pm-bot:
     kind: ai
     name: PM (ИИ)
     accounts:
       discord: "1560352838008316026"
+  po-bot:
+    kind: ai
+    name: PO (ИИ)
+    accounts:
+      discord: "1560380065907220552"
+  architect-bot:
+    kind: ai
+    name: Архитектор (ИИ)
+    accounts:
+      discord: "1560380641571508308"
+  designer-bot:
+    kind: ai
+    name: Дизайнер (ИИ)
+    accounts:
+      discord: "1560381040244170862"
+  frontend-bot:
+    kind: ai
+    name: Фронтенд (ИИ)
+    accounts:
+      discord: "1560381356507398296"
+  backend-bot:
+    kind: ai
+    name: Бэкенд (ИИ)
+    accounts:
+      discord: "1560381707440627824"
+  qa-bot:
+    kind: ai
+    name: QA (ИИ)
+    accounts:
+      discord: "1560377729524826262"
+  devops-bot:
+    kind: ai
+    name: DevOps (ИИ)
+    accounts:
+      discord: "1560382022826983495"
 
 
-# Пока команду демо играет владелец: все роли людей - у него.
+# Роли людей пока держит владелец. ИИ-персонажи держат свои роли-помощники (<роль>-ai):
+# рутина - их, решения (утвердить нарезку, отдать задачу агенту, выложить, правило) - людей.
 roles:
   product-owner: [yuriy]
-  project-manager: [yuriy, pm-bot]
+  project-manager: [yuriy]
   architect: [yuriy]
   designer: [yuriy]
   frontend-developer: [yuriy] # веб: web/, сквозные проверки e2e/
@@ -36,14 +72,22 @@ roles:
   devops: [yuriy]
   operations: [yuriy]
   release-manager: [yuriy]
+  product-owner-ai: [po-bot]
+  project-manager-ai: [pm-bot]
+  architect-ai: [architect-bot]
+  designer-ai: [designer-bot]
+  frontend-developer-ai: [frontend-bot]
+  backend-developer-ai: [backend-bot]
+  qa-ai: [qa-bot]
+  devops-ai: [devops-bot]
 
 # Точки решения фабрики и роли, которым они разрешены.
 decisions:
   deploy: [devops, release-manager] # !выкладка
   approve-slice: [project-manager, product-owner] # !утвердить
-  slice: [project-manager, product-owner] # !нарезка
+  slice: [project-manager, product-owner, project-manager-ai] # !нарезка - предложение, утверждает человек
   submit-task: [project-manager, product-owner, architect, frontend-developer, backend-developer] # !задача, метка agent, submit_task в MCP
   story: [product-owner, project-manager] # метка story; стори из вики - по автору версии страницы
   propose-rule: [architect] # !правила
-  rerun-checks: [qa, frontend-developer, backend-developer, devops] # !e2e, !ci
-  design-check: [designer, product-owner] # !макет
+  rerun-checks: [qa, frontend-developer, backend-developer, devops, qa-ai, frontend-developer-ai, backend-developer-ai, devops-ai] # !e2e, !ci, !судья
+  design-check: [designer, product-owner, designer-ai] # !макет
