@@ -1,0 +1,37 @@
+# Реестр ролей команды: кто держит какие роли и каким ролям какие решения разрешены.
+# Фабрика видит в инструменте только учётку и по реестру узнаёт роль за действием.
+# Файл защищён: агенты его не меняют; изменение - PR и слияние человеком.
+# Вид держателя: human - работает сам, human-ai - со своими ИИ-агентами, ai - ИИ-агент.
+# Вебхук чата может подписаться любым именем: вебхуки в реестр не вносятся.
+
+holders:
+  yuriy:
+    kind: human-ai
+    name: Юрий Полосов
+    accounts:
+      discord: "1559989235438583950"
+      jira: "557058:370b8b84-3d8f-4388-b85d-da08ab637c0e"
+      github: ypolosov
+
+# Пока команду демо играет владелец: все роли людей - у него.
+roles:
+  product-owner: [yuriy]
+  project-manager: [yuriy]
+  architect: [yuriy]
+  designer: [yuriy]
+  developer: [yuriy]
+  qa: [yuriy]
+  devops: [yuriy]
+  operations: [yuriy]
+  release-manager: [yuriy]
+
+# Точки решения фабрики и роли, которым они разрешены.
+decisions:
+  deploy: [devops, release-manager] # !выкладка
+  approve-slice: [project-manager, product-owner] # !утвердить
+  slice: [project-manager, product-owner] # !нарезка
+  submit-task: [project-manager, product-owner, architect, developer] # !задача, метка agent
+  story: [product-owner, project-manager] # метка story, стори из вики
+  propose-rule: [architect] # !правила
+  rerun-checks: [qa, developer, devops] # !e2e, !ci
+  design-check: [designer, product-owner] # !макет
