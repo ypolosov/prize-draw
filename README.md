@@ -18,7 +18,9 @@
 
 - `web/` - React и Vite, в образе - nginx; `api/` - NestJS и PostgreSQL; `e2e/` - Playwright.
 - Решения - [docs/adr](docs/adr); правила для агентов - [AGENTS.md](AGENTS.md); спецификации и
-  изменения - OpenSpec в [openspec](openspec) (`npm run spec:validate`).
+  изменения - OpenSpec в [openspec](openspec) (`npm run spec:validate`). Изменение поведения
+  начинается с изменения OpenSpec `openspec/changes/<ключ задачи>-<имя>/`, утверждается
+  слиянием PR, потом задача уходит агенту (порядок - в [AGENTS.md](AGENTS.md)).
 - Проверки: `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`, `npm run e2e`
   (объявлены в `.factory/config.yml`).
 
