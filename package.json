@@ -17,10 +17,12 @@
     "typecheck": "tsc -p api --noEmit && tsc -p web && tsc -p e2e",
     "test": "vitest run",
     "build": "npm run build -w api && npm run build -w web",
-    "e2e": "npm test -w e2e"
+    "e2e": "npm test -w e2e",
+    "spec:validate": "node scripts/spec-check.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@fission-ai/openspec": "1.13.2",
     "@types/node": "24.19.0",
     "dependency-cruiser": "18.5.0",
     "typescript": "6.0.3",
