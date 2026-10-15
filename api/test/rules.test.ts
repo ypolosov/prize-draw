@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageOn, checkConfirm, checkEntry, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
+import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -45,5 +45,26 @@ describe('правила розыгрыша', () => {
     const drawn = new Date('2026-10-10T00:00:00Z');
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:00Z')))).toBeUndefined();
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:01Z')))).toBe('R6');
+  });
+});
+
+describe('название розыгрыша', () => {
+  it('принимает от 3 до 120 символов', () => {
+    expect(checkTitle('abc')).toBeNull();
+    expect(checkTitle('а'.repeat(120))).toBeNull();
+  });
+  it('отклоняет слишком короткое и слишком длинное', () => {
+    expect(checkTitle('ab')).toContain('от 3 до 120');
+    expect(checkTitle('')).toContain('от 3 до 120');
+    expect(checkTitle('а'.repeat(121))).toContain('от 3 до 120');
+  });
+  it('отклоняет пробелы по краям', () => {
+    expect(checkTitle(' abc')).toContain('пробел');
+    expect(checkTitle('abc ')).toContain('пробел');
+    expect(checkTitle('   ')).not.toBeNull();
+  });
+  it('отклоняет не строку', () => {
+    expect(checkTitle(undefined)).toContain('строк');
+    expect(checkTitle(42)).toContain('строк');
   });
 });

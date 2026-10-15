@@ -64,3 +64,16 @@ export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
 }
+
+export const TITLE_MIN = 3;
+export const TITLE_MAX = 120;
+
+// Название розыгрыша: от TITLE_MIN до TITLE_MAX символов, без пробелов по краям.
+// Возвращает сообщение об ошибке по-русски или null, если название верное.
+export function checkTitle(title: unknown): string | null {
+  if (typeof title !== 'string') return 'название должно быть строкой';
+  if (title !== title.trim()) return 'название не должно начинаться или заканчиваться пробелом';
+  if (title.length < TITLE_MIN || title.length > TITLE_MAX)
+    return `название должно быть от ${TITLE_MIN} до ${TITLE_MAX} символов`;
+  return null;
+}

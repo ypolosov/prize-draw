@@ -10,7 +10,15 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Db } from '../db';
-import { checkConfirm, checkEntry, confirmDeadline, pickWinners, RuleViolation, seedHash } from '../domain/rules';
+import {
+  checkConfirm,
+  checkEntry,
+  checkTitle,
+  confirmDeadline,
+  pickWinners,
+  RuleViolation,
+  seedHash,
+} from '../domain/rules';
 
 interface DrawRow {
   id: number;
@@ -111,7 +119,9 @@ export class DrawsService {
   }
 
   async create(input: Record<string, unknown>): Promise<DrawView> {
-    const title = text(input.title, 'title');
+    const titleError = checkTitle(input.title);
+    if (titleError) throw new BadRequestException(`title: ${titleError}`);
+    const title = input.title as string;
     const prizes = Number(input.prizes ?? 1);
     if (!Number.isInteger(prizes) || prizes < 1 || prizes > 100)
       throw new BadRequestException('prizes: целое от 1 до 100');
