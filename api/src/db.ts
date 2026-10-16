@@ -29,6 +29,18 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
+);
+-- Повтор невостребованного приза (ADR-3, DRAW-35): шаг последовательности выбора и время
+-- выбора победителя; пусто у победителей исходного выбора (шаг = позиция - 1, время = drawn_at).
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS step int;
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS picked_at timestamptz;
+CREATE TABLE IF NOT EXISTS unclaimed_winners (
+  draw_id int NOT NULL REFERENCES draws(id),
+  step int NOT NULL,
+  position int NOT NULL,
+  participant text NOT NULL,
+  PRIMARY KEY (draw_id, step),
+  UNIQUE (draw_id, participant)
 );`;
 
 @Injectable()
