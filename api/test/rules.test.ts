@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
+import {
+  ageOn,
+  checkConfirm,
+  checkEntry,
+  checkRedraw,
+  checkTitle,
+  pickWinners,
+  RuleViolation,
+  redrawWinner,
+  seedHash,
+} from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -45,6 +55,43 @@ describe('правила розыгрыша', () => {
     const drawn = new Date('2026-10-10T00:00:00Z');
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:00Z')))).toBeUndefined();
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:01Z')))).toBe('R6');
+  });
+});
+
+describe('повтор невостребованного приза', () => {
+  const people = ['dina', 'anna', 'boris', 'vera', 'gleb', 'egor'];
+
+  it('следующий шаг той же последовательности: как выбор на один приз больше', () => {
+    const first = pickWinners('зерно-1', people, 2);
+    const all = pickWinners('зерно-1', people, 3);
+    expect(redrawWinner('зерно-1', people, first)).toBe(all[2]);
+  });
+
+  it('повторы подряд совпадают с пересчётом из зерна', () => {
+    const all = pickWinners('зерно-2', people, 5);
+    const picked = all.slice(0, 2);
+    for (const next of all.slice(2)) {
+      expect(redrawWinner('зерно-2', [...people].reverse(), picked)).toBe(next);
+      picked.push(next);
+    }
+  });
+
+  it('R5: уже выбранные не попадают в кандидаты', () => {
+    const picked = pickWinners('зерно-3', people, 5);
+    const next = redrawWinner('зерно-3', people, picked);
+    expect(picked).not.toContain(next);
+    expect(next).toBe(people.find((p) => !picked.includes(p)));
+  });
+
+  it('нет кандидатов - null', () => {
+    expect(redrawWinner('s', ['a', 'b'], pickWinners('s', ['a', 'b'], 2))).toBeNull();
+  });
+
+  it('R6: повтор после срока подтверждения, не раньше и не для подтверждённого', () => {
+    const picked = new Date('2026-10-10T00:00:00Z');
+    expect(rule(() => checkRedraw(picked, false, new Date('2026-10-13T00:00:01Z')))).toBeUndefined();
+    expect(rule(() => checkRedraw(picked, false, new Date('2026-10-13T00:00:00Z')))).toBe('R6');
+    expect(rule(() => checkRedraw(picked, true, new Date('2026-10-20T00:00:00Z')))).toBe('R6');
   });
 });
 
