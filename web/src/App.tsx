@@ -96,13 +96,13 @@ function DrawPage({ id }: { id: number }) {
     api.get(id).then(setDraw, (e) => setMessage(errorText(e)));
   }, [id]);
   useEffect(load, [load]);
-  const act = async (f: () => Promise<unknown>, ok: string) => {
+  const act = async (f: () => Promise<unknown>, ok: string, failed?: string) => {
     try {
       await f();
       setMessage(ok);
       load();
     } catch (e) {
-      setMessage(errorText(e));
+      setMessage(failed ? `${failed}: ${errorText(e)}` : errorText(e));
     }
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
@@ -174,6 +174,20 @@ function DrawPage({ id }: { id: number }) {
                     onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
                   >
                     Подтвердить
+                  </button>
+                )}
+                {w.status === 'unclaimed' && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void act(
+                        () => api.redraw(id, w.position),
+                        'приз разыгран заново',
+                        'Не удалось разыграть приз заново',
+                      )
+                    }
+                  >
+                    Разыграть заново
                   </button>
                 )}
               </li>
