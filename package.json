@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "lint": "biome lint . && depcruise --config .dependency-cruiser.cjs api/src web/src",
-    "format:check": "biome format .",
+    "format:check": "biome check .",
     "format": "biome check --write .",
     "typecheck": "tsc -p api --noEmit && tsc -p web && tsc -p e2e",
     "test": "vitest run",

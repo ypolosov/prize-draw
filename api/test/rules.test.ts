@@ -1,15 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ageOn,
-  checkConfirm,
-  checkEntry,
-  checkTitle,
-  pickWinners,
-  RuleViolation,
-  redrawBlocker,
-  redrawWinner,
-  seedHash,
-} from '../src/domain/rules';
+import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -55,44 +45,6 @@ describe('правила розыгрыша', () => {
     const drawn = new Date('2026-10-10T00:00:00Z');
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:00Z')))).toBeUndefined();
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:01Z')))).toBe('R6');
-  });
-});
-
-describe('повтор невостребованного приза (ADR-3, DRAW-48)', () => {
-  const people = ['dina', 'anna', 'boris', 'vera', 'gleb', 'zoya'];
-
-  it('следующий шаг той же последовательности: совпадает с пересчётом из зерна', () => {
-    const first = pickWinners('зерно-1', people, 2);
-    const again = redrawWinner('зерно-1', people, first);
-    expect(again).toBe(pickWinners('зерно-1', people, 3)[2]);
-  });
-
-  it('повторы продолжают последовательность, а не берут шаг заново', () => {
-    const chosen = pickWinners('s', people, 2);
-    const a = redrawWinner('s', people, chosen) as string;
-    const b = redrawWinner('s', people, [...chosen, a]);
-    expect([a, b]).toEqual(pickWinners('s', people, 4).slice(2));
-  });
-
-  it('R5: не выбирает уже выбранных, в том числе не подтвердившего приз', () => {
-    for (let i = 0; i < 20; i++) {
-      const chosen = pickWinners(`s${i}`, people, 3);
-      const w = redrawWinner(`s${i}`, people, chosen);
-      expect(w).toBeTruthy();
-      expect(chosen).not.toContain(w);
-    }
-  });
-
-  it('нет кандидатов: все участники выбраны', () => {
-    expect(redrawWinner('s', people, people)).toBeNull();
-    expect(redrawWinner('s', ['a', 'a'], ['a'])).toBeNull();
-  });
-
-  it('R6: повтор только после срока и только для неподтверждённого приза', () => {
-    const given = new Date('2026-10-10T00:00:00Z');
-    expect(redrawBlocker(given, false, new Date('2026-10-13T00:00:01Z'))).toBeNull();
-    expect(redrawBlocker(given, false, new Date('2026-10-13T00:00:00Z'))).toContain('срок');
-    expect(redrawBlocker(given, true, new Date('2026-10-20T00:00:00Z'))).toContain('подтверждён');
   });
 });
 
