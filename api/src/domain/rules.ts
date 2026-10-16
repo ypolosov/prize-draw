@@ -25,10 +25,6 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  // Несуществующий день (2000-13-45) отсекаем здесь: база отвечала бы ошибкой диапазона.
-  const real = new Date(Date.UTC(y, mo - 1, d));
-  if (real.getUTCFullYear() !== y || real.getUTCMonth() + 1 !== mo || real.getUTCDate() !== d)
-    throw new RuleViolation('R3', 'дата рождения - существующая дата в виде ГГГГ-ММ-ДД');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
@@ -59,17 +55,6 @@ export function pickWinners(seed: string, participants: string[], prizes: number
   return winners;
 }
 
-// Повтор невостребованного приза (ADR-3, уточнение DRAW-23): следующий шаг той же последовательности.
-// picked - все уже сделанные выборы (текущие и прежние победители); i = picked.length. Кандидаты -
-// участники без выбранных (R5). Null, если кандидатов не осталось.
-export function pickReplacement(seed: string, participants: string[], picked: string[]): string | null {
-  const taken = new Set(picked);
-  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
-  if (pool.length === 0) return null;
-  const n = createHmac('sha256', seed).update(`pick:${picked.length}`).digest().readBigUInt64BE(0);
-  return pool[Number(n % BigInt(pool.length))] ?? null;
-}
-
 // R6: приз подтверждают в течение CONFIRM_DAYS дней после выбора победителей.
 export function confirmDeadline(drawnAt: Date): Date {
   return new Date(drawnAt.getTime() + CONFIRM_DAYS * 24 * 60 * 60 * 1000);
@@ -78,13 +63,6 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
-}
-
-// Повтор возможен только для неподтверждённого приза, срок подтверждения которого истёк (R6).
-export function checkRedraw(assignedAt: Date, confirmed: boolean, now: Date): void {
-  if (confirmed) throw new RuleViolation('R6', 'приз подтверждён, разыгрывать заново нельзя');
-  if (now <= confirmDeadline(assignedAt))
-    throw new RuleViolation('R6', `срок подтверждения приза (${CONFIRM_DAYS} дня) ещё не истёк`);
 }
 
 export const TITLE_MIN = 3;

@@ -27,17 +27,7 @@ CREATE TABLE IF NOT EXISTS winners (
   position int NOT NULL,
   participant text NOT NULL,
   confirmed_at timestamptz,
-  assigned_at timestamptz,
   PRIMARY KEY (draw_id, position),
-  UNIQUE (draw_id, participant)
-);
-ALTER TABLE winners ADD COLUMN IF NOT EXISTS assigned_at timestamptz;
-CREATE TABLE IF NOT EXISTS redrawn_winners (
-  id serial PRIMARY KEY,
-  draw_id int NOT NULL REFERENCES draws(id),
-  position int NOT NULL,
-  participant text NOT NULL,
-  redrawn_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (draw_id, participant)
 );`;
 
