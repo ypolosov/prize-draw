@@ -1,6 +1,7 @@
 // Розыгрыши, заявки, выбор и подтверждение призов. Правила - в domain/rules.ts; здесь - их
 // применение к базе и ответы API.
 
+import * as clock from '../clock';
 import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
@@ -81,7 +82,7 @@ export class DrawsService {
     return d;
   }
 
-  private async view(d: DrawRow, now = new Date()): Promise<DrawView> {
+  private async view(d: DrawRow, now = clock.now()): Promise<DrawView> {
     const [count] = await this.db.query<{ n: number }>('SELECT count(*)::int AS n FROM entries WHERE draw_id = $1', [
       d.id,
     ]);
@@ -125,7 +126,7 @@ export class DrawsService {
     const prizes = Number(input.prizes ?? 1);
     if (!Number.isInteger(prizes) || prizes < 1 || prizes > 100)
       throw new BadRequestException('prizes: целое от 1 до 100');
-    const now = new Date();
+    const now = clock.now();
     const opensAt = date(input.opensAt, 'opensAt', now);
     const closesAt = date(input.closesAt, 'closesAt', new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
     if (closesAt <= opensAt) throw new BadRequestException('closesAt: позже opensAt');
@@ -152,7 +153,7 @@ export class DrawsService {
     const participant = text(input.participant, 'participant', 100);
     const birthDate = text(input.birthDate, 'birthDate', 10);
     try {
-      checkEntry({ opensAt: d.opens_at, closesAt: d.closes_at }, birthDate, new Date());
+      checkEntry({ opensAt: d.opens_at, closesAt: d.closes_at }, birthDate, clock.now());
     } catch (e) {
       rule(e);
     }
@@ -183,7 +184,7 @@ export class DrawsService {
       const d = (await c.query<DrawRow>('SELECT * FROM draws WHERE id = $1 FOR UPDATE', [id])).rows[0];
       if (!d) throw new NotFoundException(`розыгрыш ${id} не найден`);
       if (d.drawn_at) throw new ConflictException('победители уже выбраны');
-      if (new Date() < d.closes_at) rule(new RuleViolation('R4', 'победителей выбирают после конца приёма заявок'));
+      if (clock.now() < d.closes_at) rule(new RuleViolation('R4', 'победителей выбирают после конца приёма заявок'));
       const people = (
         await c.query<{ participant: string }>('SELECT participant FROM entries WHERE draw_id = $1', [id])
       ).rows;
@@ -210,7 +211,7 @@ export class DrawsService {
     );
     if (!w || w.participant !== participant) throw new NotFoundException('нет такого приза у этого участника');
     try {
-      checkConfirm(d.drawn_at, new Date());
+      checkConfirm(d.drawn_at, clock.now());
     } catch (e) {
       rule(e);
     }
