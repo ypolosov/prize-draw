@@ -26,3 +26,8 @@ rules:
     message: "случайность в api/src/ - только из зерна розыгрыша (ADR-3): Math.random и randomInt запрещены"
     forbid: 'Math\.random|randomInt\('
     paths: [api/src/]
+  - id: utc-dates-for-claim-deadline
+    source: "замечания к PR 25, 26, 28"
+    message: "Нарушено правило UTC-дат: методы локального времени (get/set FullYear, Month, Date, Day, Hours и т.п., getTimezoneOffset, toLocale*String) зависят от часового пояса; используйте getUTC*/setUTC*."
+    paths: ["api/src/", "web/src/"]
+    forbid: "\\.(get|set)(FullYear|Month|Date|Day|Hours|Minutes|Seconds|Milliseconds)\\s*\\(|\\.getTimezoneOffset\\s*\\(|\\.toLocale(Date|Time)?String\\s*\\("
