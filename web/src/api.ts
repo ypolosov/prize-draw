@@ -4,6 +4,8 @@ export interface Winner {
   participant: string;
   status: 'pending' | 'confirmed' | 'unclaimed';
   confirmBy: string;
+  // Прежние победители этого места, не востребовавшие приз.
+  unclaimed: string[];
 }
 
 export interface Draw {
@@ -51,6 +53,7 @@ export const api = {
     call<{ participant: string }>('POST', `/draws/${id}/entries`, { participant, birthDate }),
   close: (id: number) => call<Draw>('POST', `/draws/${id}/close`),
   draw: (id: number) => call<Draw>('POST', `/draws/${id}/draw`),
+  redraw: (id: number, position: number) => call<Draw>('POST', `/draws/${id}/winners/${position}/redraw`),
   confirm: (id: number, position: number, participant: string) =>
     call<Draw>('POST', `/draws/${id}/winners/${position}/confirm`, { participant }),
 };

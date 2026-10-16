@@ -7,6 +7,14 @@ import { pickWinners, sha256 } from './verify';
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
 
+// Повтор приза: объяснение для организатора без кодов правил; прежний победитель остаётся.
+const redrawErrorText = (e: unknown) => {
+  if (!(e instanceof ApiError)) return 'Не удалось разыграть приз заново: сервер недоступен. Попробуйте ещё раз позже.';
+  if (e.rule === 'R5')
+    return 'Разыграть заново не получилось: не осталось участников, которые ещё не были победителями. Приз остаётся за прежним победителем.';
+  return `Разыграть заново не получилось: ${e.message.replace(/^R\d+:\s*/, '')}. Приз остаётся за прежним победителем.`;
+};
+
 function useHash(): string {
   const [hash, setHash] = useState(location.hash || '#/');
   useEffect(() => {
@@ -77,8 +85,11 @@ function Fairness({ draw }: { draw: Draw }) {
     if (!seed || !participants) return;
     (async () => {
       const hashOk = (await sha256(seed)) === draw.seedHash;
-      const again = await pickWinners(seed, participants, draw.prizes);
-      const winnersOk = again.join() === draw.winners.map((w) => w.participant).join();
+      // Повторы продолжают ту же последовательность: прежние и новые победители вместе
+      // совпадают с первыми шагами пересчёта.
+      const chosen = draw.winners.flatMap((w) => [...w.unclaimed, w.participant]);
+      const again = await pickWinners(seed, participants, chosen.length);
+      const winnersOk = again.sort().join() === chosen.sort().join();
       setResult(
         hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
       );
@@ -103,6 +114,16 @@ function DrawPage({ id }: { id: number }) {
       load();
     } catch (e) {
       setMessage(errorText(e));
+    }
+  };
+  const redraw = async (position: number) => {
+    try {
+      const next = await api.redraw(id, position);
+      const w = next.winners.find((x) => x.position === position);
+      setDraw(next);
+      setMessage(`Приз ${position} разыгран заново: новый победитель - ${w?.participant ?? ''}.`);
+    } catch (e) {
+      setMessage(redrawErrorText(e));
     }
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
@@ -168,6 +189,17 @@ function DrawPage({ id }: { id: number }) {
                   : w.status === 'unclaimed'
                     ? 'не востребован'
                     : `подтвердить до ${fmt(w.confirmBy)}`}
+                {w.status === 'unclaimed' && (
+                  <button type="button" onClick={() => void redraw(w.position)}>
+                    Разыграть заново
+                  </button>
+                )}
+                {w.unclaimed.length > 0 && (
+                  <small data-testid={`unclaimed-${w.position}`}>
+                    {' '}
+                    (не востребовали приз: {w.unclaimed.join(', ')})
+                  </small>
+                )}
                 {w.status === 'pending' && (
                   <button
                     type="button"
