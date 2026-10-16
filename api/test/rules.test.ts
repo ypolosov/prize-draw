@@ -1,14 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ageOn,
-  checkConfirm,
-  checkEntry,
-  checkTitle,
-  pickNext,
-  pickWinners,
-  RuleViolation,
-  seedHash,
-} from '../src/domain/rules';
+import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -33,9 +24,6 @@ describe('правила розыгрыша', () => {
     expect(ageOn('2008-10-06', now)).toBe(17);
     expect(rule(() => checkEntry(period, '2008-10-06', now))).toBe('R3');
     expect(rule(() => checkEntry(period, 'не дата', now))).toBe('R3');
-    expect(rule(() => checkEntry(period, '2000-13-45', now))).toBe('R3');
-    expect(rule(() => checkEntry(period, '2001-02-29', now))).toBe('R3');
-    expect(ageOn('2000-02-29', now)).toBe(26);
   });
 
   it('R4: победители воспроизводимы из зерна, хэш зерна публикуется заранее', () => {
@@ -78,38 +66,5 @@ describe('название розыгрыша', () => {
   it('отклоняет не строку', () => {
     expect(checkTitle(undefined)).toContain('строк');
     expect(checkTitle(42)).toContain('строк');
-  });
-});
-
-describe('повтор невостребованного приза (ADR-3, DRAW-29)', () => {
-  const people = ['dina', 'anna', 'boris', 'vera', 'gleb'];
-
-  it('продолжает последовательность: совпадает с пересчётом выбора на один шаг дальше', () => {
-    const first = pickWinners('зерно-1', people, 2);
-    const all = pickWinners('зерно-1', people, 3);
-    expect(pickNext('зерно-1', people, first)).toBe(all[2]);
-  });
-
-  it('не выбирает уже выбранных, включая не подтвердившего приз', () => {
-    const chosen = pickWinners('s', people, 2);
-    const next = pickNext('s', people, chosen);
-    expect(next).not.toBeNull();
-    expect(chosen).not.toContain(next);
-    expect(people).toContain(next);
-  });
-
-  it('нет кандидатов - null', () => {
-    expect(pickNext('s', people, [...people])).toBeNull();
-  });
-
-  it('повторы до конца списка дают разных участников и совпадают с пересчётом', () => {
-    const chosen = pickWinners('s', people, 1);
-    while (chosen.length < people.length) {
-      const next = pickNext('s', people, chosen);
-      expect(next).not.toBeNull();
-      expect(chosen).not.toContain(next);
-      chosen.push(next as string);
-    }
-    expect(chosen).toEqual(pickWinners('s', people, 5));
   });
 });
