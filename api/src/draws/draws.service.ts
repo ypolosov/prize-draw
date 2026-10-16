@@ -1,7 +1,6 @@
 // Розыгрыши, заявки, выбор и подтверждение призов. Правила - в domain/rules.ts; здесь - их
 // применение к базе и ответы API.
 
-import * as clock from '../clock';
 import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
@@ -10,6 +9,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import * as clock from '../clock';
 import { Db } from '../db';
 import {
   checkConfirm,
