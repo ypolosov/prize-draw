@@ -25,11 +25,6 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  // Несуществующий день (2000-13-45) отсекаем здесь: база отвечала бы ошибкой диапазона.
-  const real = new Date(0);
-  real.setUTCFullYear(y, mo - 1, d);
-  if (real.getUTCFullYear() !== y || real.getUTCMonth() + 1 !== mo || real.getUTCDate() !== d)
-    throw new RuleViolation('R3', 'дата рождения - существующая дата в виде ГГГГ-ММ-ДД');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
@@ -58,17 +53,6 @@ export function pickWinners(seed: string, participants: string[], prizes: number
     if (w !== undefined) winners.push(w);
   }
   return winners;
-}
-
-// Повтор невостребованного приза (ADR-3, DRAW-29): следующий шаг той же последовательности.
-// chosen - все уже выбранные участники, включая не подтвердивших приз; i - их число. Кандидаты -
-// остальные участники по возрастанию. Кандидатов не осталось - null.
-export function pickNext(seed: string, participants: string[], chosen: string[]): string | null {
-  const taken = new Set(chosen);
-  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
-  if (pool.length === 0) return null;
-  const n = createHmac('sha256', seed).update(`pick:${chosen.length}`).digest().readBigUInt64BE(0);
-  return pool[Number(n % BigInt(pool.length))] ?? null;
 }
 
 // R6: приз подтверждают в течение CONFIRM_DAYS дней после выбора победителей.
