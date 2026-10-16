@@ -48,11 +48,26 @@ export function pickWinners(seed: string, participants: string[], prizes: number
   const pool = [...new Set(participants)].sort();
   const winners: string[] = [];
   for (let i = 0; i < prizes && pool.length > 0; i++) {
-    const n = createHmac('sha256', seed).update(`pick:${i}`).digest().readBigUInt64BE(0);
-    const [w] = pool.splice(Number(n % BigInt(pool.length)), 1);
+    const w = pickAt(seed, pool, i);
     if (w !== undefined) winners.push(w);
   }
   return winners;
+}
+
+// Шаг i выбора: индекс из HMAC-SHA256(зерно, "pick:i") по модулю остатка; выбранный выходит из pool.
+function pickAt(seed: string, pool: string[], i: number): string | undefined {
+  const n = createHmac('sha256', seed).update(`pick:${i}`).digest().readBigUInt64BE(0);
+  return pool.splice(Number(n % BigInt(pool.length)), 1)[0];
+}
+
+// Повтор невостребованного приза (ADR-3, DRAW-48): следующий шаг той же последовательности среди
+// участников, которых ещё не выбирали (chosen - все выбранные раньше, в том числе не подтвердившие
+// приз); i - число уже сделанных выборов. Кандидатов нет - null.
+export function redrawWinner(seed: string, participants: string[], chosen: string[]): string | null {
+  const taken = new Set(chosen);
+  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
+  if (pool.length === 0) return null;
+  return pickAt(seed, pool, taken.size) ?? null;
 }
 
 // R6: приз подтверждают в течение CONFIRM_DAYS дней после выбора победителей.
@@ -63,6 +78,14 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
+}
+
+// R6: повтор возможен, только если приз не подтверждён и срок подтверждения истёк.
+// Возвращает причину отказа по-русски или null, если повтор допустим.
+export function redrawBlocker(assignedAt: Date, confirmed: boolean, now: Date): string | null {
+  if (confirmed) return 'приз подтверждён, разыгрывать заново нечего';
+  if (now <= confirmDeadline(assignedAt)) return `срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк`;
+  return null;
 }
 
 export const TITLE_MIN = 3;
