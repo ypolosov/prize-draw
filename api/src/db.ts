@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
+);
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS assigned_at timestamptz;
+CREATE TABLE IF NOT EXISTS unclaimed_prizes (
+  draw_id int NOT NULL REFERENCES draws(id),
+  position int NOT NULL,
+  participant text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (draw_id, participant)
 );`;
 
 @Injectable()
