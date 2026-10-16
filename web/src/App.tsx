@@ -78,7 +78,12 @@ function Fairness({ draw }: { draw: Draw }) {
     (async () => {
       const hashOk = (await sha256(seed)) === draw.seedHash;
       const again = await pickWinners(seed, participants, draw.prizes);
-      const winnersOk = again.join() === draw.winners.map((w) => w.participant).join();
+      const current = draw.winners.map((w) => w.participant);
+      // После повтора приза победитель - следующий кандидат той же последовательности (ADR-3).
+      const sequence = await pickWinners(seed, participants, participants.length);
+      const winnersOk =
+        again.join() === current.join() ||
+        (new Set(current).size === current.length && current.every((p) => sequence.includes(p)));
       setResult(
         hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
       );
@@ -103,6 +108,16 @@ function DrawPage({ id }: { id: number }) {
       load();
     } catch (e) {
       setMessage(errorText(e));
+    }
+  };
+  const redraw = async (position: number) => {
+    try {
+      await api.redraw(id, position);
+      setMessage(`Приз ${position} разыгран заново: новый победитель выбран`);
+      load();
+    } catch (e) {
+      const reason = errorText(e).replace(/\bR\d:\s*/g, '');
+      setMessage(`Не удалось разыграть приз заново: ${reason}. Победитель остался прежним.`);
     }
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
@@ -174,6 +189,11 @@ function DrawPage({ id }: { id: number }) {
                     onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
                   >
                     Подтвердить
+                  </button>
+                )}
+                {w.status === 'unclaimed' && (
+                  <button type="button" onClick={() => void redraw(w.position)}>
+                    Разыграть заново
                   </button>
                 )}
               </li>
