@@ -25,6 +25,10 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  // Несуществующий день (2000-13-45) отсекаем здесь: база отвечала бы ошибкой диапазона.
+  const real = new Date(Date.UTC(y, mo - 1, d));
+  if (real.getUTCFullYear() !== y || real.getUTCMonth() + 1 !== mo || real.getUTCDate() !== d)
+    throw new RuleViolation('R3', 'дата рождения - существующая дата в виде ГГГГ-ММ-ДД');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
