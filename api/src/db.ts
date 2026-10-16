@@ -2,7 +2,7 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Pool, type PoolClient, type QueryResultRow } from 'pg';
 
-export const SCHEMA = `
+const SCHEMA = `
 CREATE TABLE IF NOT EXISTS draws (
   id serial PRIMARY KEY,
   title text NOT NULL,
@@ -29,26 +29,7 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
-);
-ALTER TABLE winners ADD COLUMN IF NOT EXISTS drawn_at timestamptz;
-CREATE TABLE IF NOT EXISTS unclaimed_winners (
-  draw_id int NOT NULL REFERENCES draws(id),
-  position int NOT NULL,
-  participant text NOT NULL,
-  PRIMARY KEY (draw_id, participant)
-);
--- На стендах таблица осталась от прежней схемы с обязательным step и ключом (draw_id, step):
--- CREATE TABLE IF NOT EXISTS её не меняет, и вставка без step падала. Столбец убираем (вместе
--- с его ключом) и возвращаем ключ (draw_id, participant), если после этого ключа нет.
-ALTER TABLE unclaimed_winners DROP COLUMN IF EXISTS step;
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conrelid = 'unclaimed_winners'::regclass AND contype = 'p'
-  ) THEN
-    ALTER TABLE unclaimed_winners ADD PRIMARY KEY (draw_id, participant);
-  END IF;
-END $$;`;
+);`;
 
 @Injectable()
 export class Db implements OnModuleInit, OnModuleDestroy {
