@@ -26,3 +26,8 @@ rules:
     message: "случайность в api/src/ - только из зерна розыгрыша (ADR-3): Math.random и randomInt запрещены"
     forbid: 'Math\.random|randomInt\('
     paths: [api/src/]
+  - id: utc-dates-for-confirmation-deadline
+    source: "замечания к PR 25, 26, 28, 33, 34, 36"
+    message: "Локальные методы Date зависят от часового пояса. Срок подтверждения приза нужно считать в UTC (getUTC*/setUTC*, getTime)."
+    paths: ["api/src/"]
+    forbid: "\\.(getFullYear|getMonth|getDate|getDay|getHours|getMinutes|getSeconds|getTimezoneOffset|setFullYear|setMonth|setDate|setHours|setMinutes|setSeconds)\\s*\\("
