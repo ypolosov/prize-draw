@@ -26,3 +26,8 @@ rules:
     message: "случайность в api/src/ - только из зерна розыгрыша (ADR-3): Math.random и randomInt запрещены"
     forbid: 'Math\.random|randomInt\('
     paths: [api/src/]
+  - id: deadline-dates-in-utc
+    source: "замечания к PR 25, 26, 28, 33, 34, 36, 49, 50, 52"
+    message: "Даты и сроки нужно считать в UTC: используйте getUTC*/setUTC*/Date.UTC вместо локальных методов Date (get*/set*, toLocale*String, getTimezoneOffset)."
+    paths: ["api/src/", "web/src/"]
+    forbid: "\\.(getFullYear|getMonth|getDate|getDay|getHours|getMinutes|getSeconds|getMilliseconds|getTimezoneOffset|setFullYear|setMonth|setDate|setHours|setMinutes|setSeconds|setMilliseconds)\\s*\\(|\\.toLocale(Date|Time)?String\\s*\\(|new\\s+Date\\s*\\(\\s*\\d{4}\\s*,"
