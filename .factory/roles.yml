@@ -34,28 +34,28 @@ holders:
       confluence: "712020:d3f88f83-dcbc-47dd-a6ce-032bd266ee21"
   architect-bot:
     kind: ai
-    name: Архитектор (ИИ)
+    name: Architect (ИИ)
     accounts:
       discord: "1560380641571508308"
       jira: "712020:60a01f69-2ed8-4e0b-a353-b5cdebb46f2e"
       confluence: "712020:60a01f69-2ed8-4e0b-a353-b5cdebb46f2e"
   designer-bot:
     kind: ai
-    name: Дизайнер (ИИ)
+    name: Designer (ИИ)
     accounts:
       discord: "1560381040244170862"
       jira: "712020:28c9e50f-44b7-4de5-8f75-5b4e5b245871"
       confluence: "712020:28c9e50f-44b7-4de5-8f75-5b4e5b245871"
   frontend-bot:
     kind: ai
-    name: Фронтенд (ИИ)
+    name: Frontend (ИИ)
     accounts:
       discord: "1560381356507398296"
       jira: "712020:47ae87fe-7e13-4728-8ea0-f21c42af68bb"
       confluence: "712020:47ae87fe-7e13-4728-8ea0-f21c42af68bb"
   backend-bot:
     kind: ai
-    name: Бэкенд (ИИ)
+    name: Backend (ИИ)
     accounts:
       discord: "1560381707440627824"
       jira: "712020:41e37ff7-488f-49d0-84fc-78be0d419a58"
