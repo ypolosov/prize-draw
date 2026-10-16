@@ -22,9 +22,11 @@ export interface Draw {
 
 export class ApiError extends Error {
   readonly rule?: string;
-  constructor(message: string, rule?: string) {
+  readonly status?: number;
+  constructor(message: string, rule?: string, status?: number) {
     super(message);
     this.rule = rule;
+    this.status = status;
   }
 }
 
@@ -39,6 +41,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     throw new ApiError(
       Array.isArray(data.message) ? data.message.join('; ') : String(data.message ?? r.status),
       data.rule,
+      r.status,
     );
   return data as T;
 }
@@ -53,4 +56,5 @@ export const api = {
   draw: (id: number) => call<Draw>('POST', `/draws/${id}/draw`),
   confirm: (id: number, position: number, participant: string) =>
     call<Draw>('POST', `/draws/${id}/winners/${position}/confirm`, { participant }),
+  redraw: (id: number, position: number) => call<Draw>('POST', `/draws/${id}/winners/${position}/redraw`),
 };
