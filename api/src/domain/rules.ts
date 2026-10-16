@@ -48,11 +48,25 @@ export function pickWinners(seed: string, participants: string[], prizes: number
   const pool = [...new Set(participants)].sort();
   const winners: string[] = [];
   for (let i = 0; i < prizes && pool.length > 0; i++) {
-    const n = createHmac('sha256', seed).update(`pick:${i}`).digest().readBigUInt64BE(0);
-    const [w] = pool.splice(Number(n % BigInt(pool.length)), 1);
+    const [w] = pool.splice(pickIndex(seed, i, pool.length), 1);
     if (w !== undefined) winners.push(w);
   }
   return winners;
+}
+
+function pickIndex(seed: string, step: number, poolSize: number): number {
+  const n = createHmac('sha256', seed).update(`pick:${step}`).digest().readBigUInt64BE(0);
+  return Number(n % BigInt(poolSize));
+}
+
+// ADR-3 (DRAW-41): повтор невостребованного приза - следующий шаг той же последовательности.
+// chosen - все уже выбранные победители, включая не подтвердивших приз; шаг i равен их числу.
+// Возвращает null, если кандидатов не осталось.
+export function redrawWinner(seed: string, participants: string[], chosen: string[]): string | null {
+  const taken = new Set(chosen);
+  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
+  if (pool.length === 0) return null;
+  return pool[pickIndex(seed, taken.size, pool.length)] ?? null;
 }
 
 // R6: приз подтверждают в течение CONFIRM_DAYS дней после выбора победителей.
@@ -63,6 +77,13 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
+}
+
+// R6: повтор доступен только для приза, не подтверждённого до конца срока.
+export function checkRedraw(drawnAt: Date, confirmed: boolean, now: Date): void {
+  if (confirmed) throw new RuleViolation('R6', 'приз уже подтверждён, повтор невозможен');
+  if (now <= confirmDeadline(drawnAt))
+    throw new RuleViolation('R6', `срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк, повтор невозможен`);
 }
 
 export const TITLE_MIN = 3;
