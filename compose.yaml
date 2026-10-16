@@ -28,6 +28,8 @@ services:
       # Сбор ошибок: на стенде фабрики DSN GlitchTip даёт служба выкладки; в CI сбора нет.
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_RELEASE: ${TAG:-local}
+      # Часы стенда демо: on - время можно сдвинуть (POST /api/demo/clock), см. api/src/clock.ts.
+      DEMO_CLOCK: ${DEMO_CLOCK:-off}
     extra_hosts:
       - "glitchtip:host-gateway"
     depends_on:
