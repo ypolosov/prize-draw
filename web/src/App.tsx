@@ -2,7 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
-import { canRedraw, redrawErrorText } from './redraw';
+import { canRedraw, redrawErrorText, redrawUnknownText } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -108,11 +108,10 @@ function DrawPage({ id }: { id: number }) {
   };
   const redraw = async (position: number) => {
     try {
-      await api.redraw(id, position);
+      setDraw(await api.redraw(id, position));
       setMessage('приз разыгран заново, новый победитель указан в списке');
-      load();
     } catch (e) {
-      setMessage(redrawErrorText(e instanceof ApiError ? e.message : 'сервер недоступен'));
+      setMessage(e instanceof ApiError ? redrawErrorText(e.message) : redrawUnknownText());
     }
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;

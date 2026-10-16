@@ -39,3 +39,23 @@ test('невостребованный приз можно разыграть з
     await request.post('/api/demo/clock', { data: { days: 0 } });
   }
 });
+
+test('ошибка повтора: понятное сообщение, прежний победитель сохранён', async ({ page, request }) => {
+  const clock = await request.post('/api/demo/clock', { data: { days: 4 } });
+  test.skip(!clock.ok(), 'часы демо выключены (DEMO_CLOCK=off)');
+  try {
+    const draw = await (await request.post('/api/draws', { data: { title: `e2e redraw ${uniq()}`, prizes: 1 } })).json();
+    await request.post(`/api/draws/${draw.id}/entries`, { data: { participant: 'вера', birthDate: '1990-05-05' } });
+    await request.post(`/api/draws/${draw.id}/close`);
+    await request.post(`/api/draws/${draw.id}/draw`);
+    await page.goto(`/#/draws/${draw.id}`);
+    await expect(page.getByText('не востребован')).toBeVisible();
+    await page.getByRole('button', { name: 'Разыграть заново' }).click();
+    await expect(page.getByRole('alert')).toContainText('Не удалось разыграть приз заново');
+    await expect(page.getByRole('alert')).not.toContainText('разыгран заново,');
+    await expect(page.getByText('не востребован')).toBeVisible();
+    await expect(page.getByRole('listitem').filter({ hasText: 'вера' })).toBeVisible();
+  } finally {
+    await request.post('/api/demo/clock', { data: { days: 0 } });
+  }
+});

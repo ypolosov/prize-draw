@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canRedraw, redrawErrorText } from '../src/redraw';
+import { canRedraw, redrawErrorText, redrawUnknownText } from '../src/redraw';
 
 describe('кнопка «Разыграть заново»', () => {
   it('для невостребованного приза доступна', () => {
@@ -25,5 +25,13 @@ describe('сообщение об ошибке повтора', () => {
 
   it('без причины всё равно понятно', () => {
     expect(redrawErrorText('')).toMatch(/^Не удалось разыграть приз заново\. /);
+  });
+});
+
+describe('сообщение, когда ответ не получен', () => {
+  it('не обещает, что приз не изменился, и просит обновить данные', () => {
+    const text = redrawUnknownText();
+    expect(text).not.toContain('остался у прежнего победителя');
+    expect(text).toContain('Обновите страницу');
   });
 });
