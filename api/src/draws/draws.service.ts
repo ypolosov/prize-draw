@@ -1,6 +1,7 @@
 // Розыгрыши, заявки, выбор и подтверждение призов. Правила - в domain/rules.ts; здесь - их
 // применение к базе и ответы API.
 
+import * as clock from '../clock';
 import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
@@ -9,17 +10,14 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import * as clock from '../clock';
 import { Db } from '../db';
 import {
   checkConfirm,
   checkEntry,
-  checkRedraw,
   checkTitle,
   confirmDeadline,
   pickWinners,
   RuleViolation,
-  redrawWinner,
   seedHash,
 } from '../domain/rules';
 
@@ -41,11 +39,6 @@ export interface WinnerView {
   confirmBy: string;
 }
 
-export interface UnclaimedView {
-  position: number;
-  participant: string;
-}
-
 export interface DrawView {
   id: number;
   title: string;
@@ -59,8 +52,6 @@ export interface DrawView {
   drawnAt?: string;
   participants?: string[];
   winners: WinnerView[];
-  // Победители, не подтвердившие приз и заменённые повтором.
-  unclaimed?: UnclaimedView[];
 }
 
 const rule = (e: unknown): never => {
@@ -106,16 +97,9 @@ export class DrawsService {
       winners: [],
     };
     if (!d.drawn_at) return v;
-    const winners = await this.db.query<{
-      position: number;
-      participant: string;
-      confirmed_at: Date | null;
-      drawn_at: Date | null;
-    }>('SELECT position, participant, confirmed_at, drawn_at FROM winners WHERE draw_id = $1 ORDER BY position', [
-      d.id,
-    ]);
-    const unclaimed = await this.db.query<UnclaimedView>(
-      'SELECT position, participant FROM unclaimed_winners WHERE draw_id = $1 ORDER BY position, participant',
+    const deadline = confirmDeadline(d.drawn_at);
+    const winners = await this.db.query<{ position: number; participant: string; confirmed_at: Date | null }>(
+      'SELECT position, participant, confirmed_at FROM winners WHERE draw_id = $1 ORDER BY position',
       [d.id],
     );
     const people = await this.db.query<{ participant: string }>('SELECT participant FROM entries WHERE draw_id = $1', [
@@ -126,16 +110,12 @@ export class DrawsService {
       seed: d.seed,
       drawnAt: d.drawn_at.toISOString(),
       participants: people.map((p) => p.participant).sort(),
-      winners: winners.map((w) => {
-        const deadline = confirmDeadline(w.drawn_at ?? (d.drawn_at as Date));
-        return {
-          position: w.position,
-          participant: w.participant,
-          status: w.confirmed_at ? 'confirmed' : now > deadline ? 'unclaimed' : 'pending',
-          confirmBy: deadline.toISOString(),
-        };
-      }),
-      unclaimed,
+      winners: winners.map((w) => ({
+        position: w.position,
+        participant: w.participant,
+        status: w.confirmed_at ? 'confirmed' : now > deadline ? 'unclaimed' : 'pending',
+        confirmBy: deadline.toISOString(),
+      })),
     };
   }
 
@@ -225,13 +205,13 @@ export class DrawsService {
     const d = await this.row(id);
     if (!d.drawn_at) throw new ConflictException('победители ещё не выбраны');
     const participant = text(input.participant, 'participant', 100);
-    const [w] = await this.db.query<{ participant: string; confirmed_at: Date | null; drawn_at: Date | null }>(
-      'SELECT participant, confirmed_at, drawn_at FROM winners WHERE draw_id = $1 AND position = $2',
+    const [w] = await this.db.query<{ participant: string; confirmed_at: Date | null }>(
+      'SELECT participant, confirmed_at FROM winners WHERE draw_id = $1 AND position = $2',
       [id, position],
     );
     if (!w || w.participant !== participant) throw new NotFoundException('нет такого приза у этого участника');
     try {
-      checkConfirm(w.drawn_at ?? d.drawn_at, clock.now());
+      checkConfirm(d.drawn_at, clock.now());
     } catch (e) {
       rule(e);
     }
@@ -239,54 +219,6 @@ export class DrawsService {
       'UPDATE winners SET confirmed_at = now() WHERE draw_id = $1 AND position = $2 AND confirmed_at IS NULL',
       [id, position],
     );
-    return this.get(id);
-  }
-
-  // Повтор невостребованного приза: следующий шаг последовательности ADR-3 среди невыбранных (R4, R5).
-  async redraw(id: number, position: number): Promise<DrawView> {
-    await this.db.tx(async (c) => {
-      const d = (await c.query<DrawRow>('SELECT * FROM draws WHERE id = $1 FOR UPDATE', [id])).rows[0];
-      if (!d) throw new NotFoundException(`розыгрыш ${id} не найден`);
-      if (!d.drawn_at) throw new ConflictException('победители ещё не выбраны');
-      const [w] = (
-        await c.query<{ participant: string; confirmed_at: Date | null; drawn_at: Date | null }>(
-          'SELECT participant, confirmed_at, drawn_at FROM winners WHERE draw_id = $1 AND position = $2',
-          [id, position],
-        )
-      ).rows;
-      if (!w) throw new NotFoundException(`приз ${position} не найден`);
-      const now = clock.now();
-      try {
-        checkRedraw(w.drawn_at ?? d.drawn_at, w.confirmed_at !== null, now);
-      } catch (e) {
-        if (e instanceof RuleViolation) throw new ConflictException({ rule: e.rule, message: e.message });
-        throw e;
-      }
-      const people = (
-        await c.query<{ participant: string }>('SELECT participant FROM entries WHERE draw_id = $1', [id])
-      ).rows.map((p) => p.participant);
-      const chosen = [
-        ...(await c.query<{ participant: string }>('SELECT participant FROM winners WHERE draw_id = $1', [id])).rows,
-        ...(
-          await c.query<{ participant: string }>('SELECT participant FROM unclaimed_winners WHERE draw_id = $1', [id])
-        ).rows,
-      ].map((r) => r.participant);
-      const next = redrawWinner(d.seed, people, chosen);
-      if (next === null)
-        throw new ConflictException({
-          rule: 'R5',
-          message: 'R5: нет кандидатов для повтора, приз остаётся невостребованным',
-        });
-      await c.query('INSERT INTO unclaimed_winners (draw_id, position, participant) VALUES ($1, $2, $3)', [
-        id,
-        position,
-        w.participant,
-      ]);
-      await c.query(
-        'UPDATE winners SET participant = $3, confirmed_at = NULL, drawn_at = $4 WHERE draw_id = $1 AND position = $2',
-        [id, position, next, now],
-      );
-    });
     return this.get(id);
   }
 }

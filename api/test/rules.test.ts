@@ -1,15 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ageOn,
-  checkConfirm,
-  checkEntry,
-  checkRedraw,
-  checkTitle,
-  pickWinners,
-  RuleViolation,
-  redrawWinner,
-  seedHash,
-} from '../src/domain/rules';
+import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -55,51 +45,6 @@ describe('правила розыгрыша', () => {
     const drawn = new Date('2026-10-10T00:00:00Z');
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:00Z')))).toBeUndefined();
     expect(rule(() => checkConfirm(drawn, new Date('2026-10-13T00:00:01Z')))).toBe('R6');
-  });
-});
-
-describe('повтор невостребованного приза', () => {
-  const people = ['dina', 'anna', 'boris', 'vera', 'gleb', 'olga'];
-  const drawn = new Date('2026-10-10T00:00:00Z');
-
-  it('приз не подтверждён в срок: повтор разрешён', () => {
-    expect(rule(() => checkRedraw(drawn, false, new Date('2026-10-13T00:00:01Z')))).toBeUndefined();
-  });
-
-  it('срок подтверждения не истёк: повтор отклонён (R6)', () => {
-    expect(rule(() => checkRedraw(drawn, false, new Date('2026-10-13T00:00:00Z')))).toBe('R6');
-  });
-
-  it('приз подтверждён: повтор отклонён (R6)', () => {
-    expect(rule(() => checkRedraw(drawn, true, new Date('2026-10-20T00:00:00Z')))).toBe('R6');
-  });
-
-  it('повтор - следующий шаг последовательности, пересчёт из зерна совпадает', () => {
-    const chosen = pickWinners('зерно-1', people, 2);
-    expect(redrawWinner('зерно-1', people, chosen)).toBe(pickWinners('зерно-1', people, 3)[2]);
-  });
-
-  it('повтор после повтора продолжает последовательность', () => {
-    const all = pickWinners('s', people, 4);
-    expect(redrawWinner('s', people, all.slice(0, 3))).toBe(all[3]);
-  });
-
-  it('не выбирает ни одного из ранее выбранных, включая не подтвердившего', () => {
-    for (let i = 0; i < 20; i++) {
-      const chosen = pickWinners(`z${i}`, people, 3);
-      const next = redrawWinner(`z${i}`, people, chosen);
-      expect(next).not.toBeNull();
-      expect(chosen).not.toContain(next);
-    }
-  });
-
-  it('не зависит от порядка участников и повторов', () => {
-    const chosen = pickWinners('s', people, 2);
-    expect(redrawWinner('s', [...people].reverse().concat('dina'), chosen)).toBe(redrawWinner('s', people, chosen));
-  });
-
-  it('некого выбирать: null', () => {
-    expect(redrawWinner('s', people, pickWinners('s', people, 6))).toBeNull();
   });
 });
 
