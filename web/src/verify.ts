@@ -23,3 +23,18 @@ export async function pickWinners(seed: string, participants: string[], prizes: 
   }
   return winners;
 }
+
+// Победители сходятся с зерном (ADR-3): приз на позиции p - либо исходный выбор pickWinners,
+// либо кандидат из продолжения последовательности после первых `prizes` выборов (повтор приза).
+// История повторов API не отдаёт, поэтому порядок повторов не проверяется; произвольный
+// участник, дубль или чужой кандидат на позиции исходного выбора отвергаются.
+export function winnersMatch(
+  sequence: string[],
+  prizes: number,
+  winners: { position: number; participant: string }[],
+): boolean {
+  const names = winners.map((w) => w.participant);
+  if (new Set(names).size !== names.length) return false;
+  const tail = new Set(sequence.slice(prizes));
+  return winners.every((w) => sequence[w.position - 1] === w.participant || tail.has(w.participant));
+}

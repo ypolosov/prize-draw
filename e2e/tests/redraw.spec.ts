@@ -50,3 +50,18 @@ test('ошибка повтора: сообщение и прежний побе
   await expect(page.getByRole('alert')).toContainText('Победитель остался прежним');
   await expect(page.getByRole('listitem').filter({ hasText: 'анна' })).toBeVisible();
 });
+
+test('повтор удался, а последующая загрузка недоступна: новый победитель всё равно на экране', async ({
+  page,
+  request,
+}) => {
+  const d = await drawn(request, ['анна', 'борис', 'вера']);
+  const before = d.winners[0]?.participant ?? '';
+  await shift(request, 4);
+  await page.goto(`/#/draws/${d.id}`);
+  await expect(page.getByText('не востребован')).toBeVisible();
+  await page.route(`**/api/draws/${d.id}`, (route) => route.abort());
+  await page.getByRole('button', { name: 'Разыграть заново' }).click();
+  await expect(page.getByRole('alert')).toContainText('новый победитель выбран');
+  await expect(page.getByRole('listitem').filter({ hasText: before })).toHaveCount(0);
+});

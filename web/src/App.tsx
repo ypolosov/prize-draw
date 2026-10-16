@@ -2,7 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
-import { pickWinners, sha256 } from './verify';
+import { pickWinners, sha256, winnersMatch } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -77,13 +77,9 @@ function Fairness({ draw }: { draw: Draw }) {
     if (!seed || !participants) return;
     (async () => {
       const hashOk = (await sha256(seed)) === draw.seedHash;
-      const again = await pickWinners(seed, participants, draw.prizes);
-      const current = draw.winners.map((w) => w.participant);
       // После повтора приза победитель - следующий кандидат той же последовательности (ADR-3).
       const sequence = await pickWinners(seed, participants, participants.length);
-      const winnersOk =
-        again.join() === current.join() ||
-        (new Set(current).size === current.length && current.every((p) => sequence.includes(p)));
+      const winnersOk = winnersMatch(sequence, draw.prizes, draw.winners);
       setResult(
         hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
       );
@@ -112,9 +108,8 @@ function DrawPage({ id }: { id: number }) {
   };
   const redraw = async (position: number) => {
     try {
-      await api.redraw(id, position);
+      setDraw(await api.redraw(id, position));
       setMessage(`Приз ${position} разыгран заново: новый победитель выбран`);
-      load();
     } catch (e) {
       const reason = errorText(e).replace(/\bR\d:\s*/g, '');
       setMessage(`Не удалось разыграть приз заново: ${reason}. Победитель остался прежним.`);
