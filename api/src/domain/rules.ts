@@ -77,3 +77,5 @@ export function checkTitle(title: unknown): string | null {
     return `название должно быть от ${TITLE_MIN} до ${TITLE_MAX} символов`;
   return null;
 }
+// Проба стража: перемешать участников без зерна розыгрыша.
+export const shuffleLoose = <T>(xs: T[]): T[] => [...xs].sort(() => Math.random() - 0.5);
