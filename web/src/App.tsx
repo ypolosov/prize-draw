@@ -2,7 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
-import { pickWinners, sha256, winnersMatch } from './verify';
+import { checkWinners, pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -79,9 +79,13 @@ function Fairness({ draw }: { draw: Draw }) {
       const hashOk = (await sha256(seed)) === draw.seedHash;
       // После повтора приза победитель - следующий кандидат той же последовательности (ADR-3).
       const sequence = await pickWinners(seed, participants, participants.length);
-      const winnersOk = winnersMatch(sequence, draw.prizes, draw.winners);
+      const check = checkWinners(sequence, draw.prizes, draw.winners);
       setResult(
-        hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
+        !hashOk || check === 'mismatch'
+          ? 'результат НЕ сходится с зерном'
+          : check === 'exact'
+            ? 'результат честный: зерно и победители сходятся'
+            : 'зерно верное, победители допустимы, но историю повторных розыгрышей полностью проверить нельзя',
       );
     })();
   }, [draw]);

@@ -24,17 +24,28 @@ export async function pickWinners(seed: string, participants: string[], prizes: 
   return winners;
 }
 
-// Победители сходятся с зерном (ADR-3): приз на позиции p - либо исходный выбор pickWinners,
-// либо кандидат из продолжения последовательности после первых `prizes` выборов (повтор приза).
-// История повторов API не отдаёт, поэтому порядок повторов не проверяется; произвольный
-// участник, дубль или чужой кандидат на позиции исходного выбора отвергаются.
-export function winnersMatch(
+export type WinnersCheck = 'exact' | 'partial' | 'mismatch';
+
+// Победители против зерна (ADR-3): 'exact' - все призы совпадают с исходным выбором;
+// 'partial' - часть призов заменена кандидатами из продолжения последовательности (повтор),
+// но порядок и число повторов API не отдаёт, поэтому полностью их подтвердить нельзя;
+// 'mismatch' - неполный список, дубли, лишние или повторные позиции, чужой участник.
+export function checkWinners(
   sequence: string[],
   prizes: number,
   winners: { position: number; participant: string }[],
-): boolean {
-  const names = winners.map((w) => w.participant);
-  if (new Set(names).size !== names.length) return false;
+): WinnersCheck {
+  if (winners.length !== prizes) return 'mismatch';
+  const positions = new Set(winners.map((w) => w.position));
+  if (positions.size !== prizes || [...positions].some((p) => !Number.isInteger(p) || p < 1 || p > prizes))
+    return 'mismatch';
+  if (new Set(winners.map((w) => w.participant)).size !== prizes) return 'mismatch';
   const tail = new Set(sequence.slice(prizes));
-  return winners.every((w) => sequence[w.position - 1] === w.participant || tail.has(w.participant));
+  let redrawn = false;
+  for (const w of winners) {
+    if (sequence[w.position - 1] === w.participant) continue;
+    if (!tail.has(w.participant)) return 'mismatch';
+    redrawn = true;
+  }
+  return redrawn ? 'partial' : 'exact';
 }

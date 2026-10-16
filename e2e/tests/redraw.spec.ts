@@ -65,3 +65,18 @@ test('повтор удался, а последующая загрузка не
   await expect(page.getByRole('alert')).toContainText('новый победитель выбран');
   await expect(page.getByRole('listitem').filter({ hasText: before })).toHaveCount(0);
 });
+
+test('подтверждённый приз нельзя разыграть заново - ни до срока, ни после', async ({ page, request }) => {
+  const d = await drawn(request, ['анна', 'борис', 'вера']);
+  const winner = d.winners[0]?.participant ?? '';
+  const confirmed = await request.post(`/api/draws/${d.id}/winners/1/confirm`, { data: { participant: winner } });
+  expect(confirmed.ok()).toBe(true);
+  const button = page.getByRole('button', { name: 'Разыграть заново' });
+  await page.goto(`/#/draws/${d.id}`);
+  await expect(page.getByRole('listitem').filter({ hasText: winner })).toBeVisible();
+  await expect(button).toHaveCount(0);
+  await shift(request, 4);
+  await page.reload();
+  await expect(page.getByRole('listitem').filter({ hasText: winner })).toBeVisible();
+  await expect(button).toHaveCount(0);
+});

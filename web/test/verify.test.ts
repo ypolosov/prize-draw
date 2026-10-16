@@ -1,21 +1,39 @@
-// Проверка честности на экране: исходный выбор и повтор приза принимаются, подмена - нет.
+// Проверка честности на экране: исходный выбор принимается, повтор - только как частичная
+// проверка, любая подмена отвергается.
 import { describe, expect, it } from 'vitest';
-import { winnersMatch } from '../src/verify';
+import { checkWinners } from '../src/verify';
 
-const sequence = ['анна', 'борис', 'вера', 'глеб'];
+const sequence = ['анна', 'борис', 'вера', 'глеб', 'дина'];
+const w = (position: number, participant: string) => ({ position, participant });
 
-describe('winnersMatch', () => {
-  it('принимает исходный выбор', () => {
-    expect(winnersMatch(sequence, 2, [{ position: 1, participant: 'анна' }, { position: 2, participant: 'борис' }])).toBe(true);
+describe('checkWinners', () => {
+  it('исходный выбор - точное совпадение', () => {
+    expect(checkWinners(sequence, 2, [w(1, 'анна'), w(2, 'борис')])).toBe('exact');
   });
-  it('принимает повтор: победитель - следующий кандидат', () => {
-    expect(winnersMatch(sequence, 2, [{ position: 1, participant: 'анна' }, { position: 2, participant: 'вера' }])).toBe(true);
+  it('повтор: победитель из продолжения - только частичная проверка', () => {
+    expect(checkWinners(sequence, 2, [w(1, 'анна'), w(2, 'вера')])).toBe('partial');
   });
-  it('отвергает подмену победителя на позиции исходного выбора', () => {
-    expect(winnersMatch(sequence, 2, [{ position: 1, participant: 'борис' }, { position: 2, participant: 'анна' }])).toBe(false);
+  it('подмена победителя на позиции исходного выбора отвергается', () => {
+    expect(checkWinners(sequence, 2, [w(1, 'борис'), w(2, 'анна')])).toBe('mismatch');
   });
-  it('отвергает дубль и чужого участника', () => {
-    expect(winnersMatch(sequence, 2, [{ position: 1, participant: 'анна' }, { position: 2, participant: 'анна' }])).toBe(false);
-    expect(winnersMatch(sequence, 1, [{ position: 1, participant: 'пётр' }])).toBe(false);
+  it('пустой и неполный список отвергаются', () => {
+    expect(checkWinners(sequence, 2, [])).toBe('mismatch');
+    expect(checkWinners(sequence, 2, [w(1, 'анна')])).toBe('mismatch');
+  });
+  it('лишний победитель отвергается', () => {
+    expect(checkWinners(sequence, 1, [w(1, 'анна'), w(2, 'вера')])).toBe('mismatch');
+  });
+  it('повторяющиеся и недопустимые позиции отвергаются', () => {
+    expect(checkWinners(sequence, 2, [w(1, 'анна'), w(1, 'вера')])).toBe('mismatch');
+    expect(checkWinners(sequence, 2, [w(1, 'анна'), w(3, 'вера')])).toBe('mismatch');
+    expect(checkWinners(sequence, 2, [w(0, 'анна'), w(1, 'борис')])).toBe('mismatch');
+  });
+  it('дубль и чужой участник отвергаются', () => {
+    expect(checkWinners(sequence, 2, [w(1, 'анна'), w(2, 'анна')])).toBe('mismatch');
+    expect(checkWinners(sequence, 1, [w(1, 'пётр')])).toBe('mismatch');
+  });
+  it('исходный кандидат на чужой позиции отвергается', () => {
+    expect(checkWinners(sequence, 2, [w(1, 'анна'), w(2, 'анна')])).toBe('mismatch');
+    expect(checkWinners(sequence, 2, [w(1, 'борис'), w(2, 'вера')])).toBe('mismatch');
   });
 });
