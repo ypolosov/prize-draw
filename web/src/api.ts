@@ -51,6 +51,7 @@ export const api = {
     call<{ participant: string }>('POST', `/draws/${id}/entries`, { participant, birthDate }),
   close: (id: number) => call<Draw>('POST', `/draws/${id}/close`),
   draw: (id: number) => call<Draw>('POST', `/draws/${id}/draw`),
+  redraw: (id: number, position: number) => call<Draw>('POST', `/draws/${id}/winners/${position}/redraw`),
   confirm: (id: number, position: number, participant: string) =>
     call<Draw>('POST', `/draws/${id}/winners/${position}/confirm`, { participant }),
 };
