@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canRedraw, redrawErrorText } from '../src/prize';
+import type { Draw } from '../src/api';
+import { canRedraw, redrawErrorText, runRedraw } from '../src/prize';
 
 // Экран приза: кнопка «Разыграть заново» только для невостребованного приза.
 describe('кнопка «Разыграть заново»', () => {
@@ -23,5 +24,28 @@ describe('сообщение об ошибке повтора', () => {
   });
   it('без причины даёт общий текст', () => {
     expect(redrawErrorText('')).toContain('Прежний победитель');
+  });
+});
+
+describe('повтор приза', () => {
+  const draw = { id: 1, winners: [{ position: 1, participant: 'новый', status: 'pending' }] } as unknown as Draw;
+  it('при успехе возвращает новый розыгрыш из ответа API', async () => {
+    const out = await runRedraw(
+      async () => draw,
+      () => '',
+    );
+    expect(out.draw?.winners[0].participant).toBe('новый');
+    expect(out.message).toContain('новый победитель');
+  });
+  it('при ошибке не меняет экран и объясняет причину', async () => {
+    const out = await runRedraw(
+      async () => {
+        throw new Error('x');
+      },
+      () => 'нет кандидатов',
+    );
+    expect(out.draw).toBeUndefined();
+    expect(out.message).toContain('нет кандидатов');
+    expect(out.message).toContain('Прежний победитель');
   });
 });

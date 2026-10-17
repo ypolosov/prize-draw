@@ -23,7 +23,7 @@ test.describe('повтор невостребованного приза', () =
 
   test('срок не истёк - кнопки нет; через 3 дня - есть, и новый победитель на экране', async ({ page, request }) => {
     const clock = await request.post('/api/demo/clock', { data: { days: 0 } });
-    test.skip(!clock.ok(), 'часы демо выключены (DEMO_CLOCK)');
+    expect(clock.ok(), 'часы демо выключены: для e2e нужен DEMO_CLOCK').toBe(true);
     const people = [`а-${uniq()}`, `б-${uniq()}`, `в-${uniq()}`];
     const drawn = await drawnPrize(request, people);
     const first = drawn.winners[0].participant;
@@ -42,7 +42,7 @@ test.describe('повтор невостребованного приза', () =
 
   test('приз подтверждён - кнопки нет', async ({ page, request }) => {
     const clock = await request.post('/api/demo/clock', { data: { days: 0 } });
-    test.skip(!clock.ok(), 'часы демо выключены (DEMO_CLOCK)');
+    expect(clock.ok(), 'часы демо выключены: для e2e нужен DEMO_CLOCK').toBe(true);
     const drawn = await drawnPrize(request, [`а-${uniq()}`, `б-${uniq()}`]);
     await request.post(`/api/draws/${drawn.id}/winners/1/confirm`, {
       data: { participant: drawn.winners[0].participant },
@@ -55,7 +55,7 @@ test.describe('повтор невостребованного приза', () =
 
   test('ошибка повтора - сообщение, прежний победитель остаётся', async ({ page, request }) => {
     const clock = await request.post('/api/demo/clock', { data: { days: 0 } });
-    test.skip(!clock.ok(), 'часы демо выключены (DEMO_CLOCK)');
+    expect(clock.ok(), 'часы демо выключены: для e2e нужен DEMO_CLOCK').toBe(true);
     const drawn = await drawnPrize(request, [`а-${uniq()}`]);
     const first = drawn.winners[0].participant;
     await request.post('/api/demo/clock', { data: { days: 4 } });

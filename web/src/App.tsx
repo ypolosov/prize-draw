@@ -2,7 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
-import { canRedraw, redrawErrorText } from './prize';
+import { canRedraw, runRedraw } from './prize';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -93,6 +93,7 @@ function DrawPage({ id }: { id: number }) {
   const [participant, setParticipant] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [message, setMessage] = useState('');
+  const [redrawing, setRedrawing] = useState(false);
   const load = useCallback(() => {
     api.get(id).then(setDraw, (e) => setMessage(errorText(e)));
   }, [id]);
@@ -107,13 +108,14 @@ function DrawPage({ id }: { id: number }) {
     }
   };
   const redraw = async (position: number) => {
-    try {
-      await api.redraw(id, position);
-      setMessage('приз разыгран заново: на экране новый победитель');
-      load();
-    } catch (e) {
-      setMessage(redrawErrorText(e instanceof ApiError ? e.message : 'API недоступен'));
-    }
+    setRedrawing(true);
+    const out = await runRedraw(
+      () => api.redraw(id, position),
+      (e) => errorText(e),
+    );
+    if (out.draw) setDraw(out.draw);
+    setMessage(out.message);
+    setRedrawing(false);
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
@@ -187,7 +189,7 @@ function DrawPage({ id }: { id: number }) {
                   </button>
                 )}
                 {canRedraw(w) && (
-                  <button type="button" onClick={() => void redraw(w.position)}>
+                  <button type="button" disabled={redrawing} onClick={() => void redraw(w.position)}>
                     Разыграть заново
                   </button>
                 )}
