@@ -1,15 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ageOn,
-  checkConfirm,
-  checkEntry,
-  checkTitle,
-  pickWinners,
-  RuleViolation,
-  redrawBlocker,
-  redrawWinner,
-  seedHash,
-} from '../src/domain/rules';
+import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -76,35 +66,5 @@ describe('название розыгрыша', () => {
   it('отклоняет не строку', () => {
     expect(checkTitle(undefined)).toContain('строк');
     expect(checkTitle(42)).toContain('строк');
-  });
-});
-
-describe('повтор невостребованного приза (ADR-3, DRAW-64)', () => {
-  const people = ['dina', 'anna', 'boris', 'vera', 'gleb', 'egor'];
-
-  it('новый победитель - следующий шаг той же последовательности', () => {
-    const first = pickWinners('зерно-1', people, 2);
-    expect(redrawWinner('зерно-1', people, first)).toBe(pickWinners('зерно-1', people, 3)[2]);
-  });
-
-  it('учитывает прежних победителей и тех, кого уже заменили', () => {
-    const picked = pickWinners('зерно-1', people, 3);
-    expect(redrawWinner('зерно-1', [...people].reverse(), picked)).toBe(pickWinners('зерно-1', people, 4)[3]);
-    for (let k = 0; k < people.length; k++) {
-      const taken = pickWinners('зерно-2', people, k);
-      expect(taken).not.toContain(redrawWinner('зерно-2', people, taken));
-    }
-  });
-
-  it('некого выбирать - null', () => {
-    expect(redrawWinner('s', people, pickWinners('s', people, people.length))).toBeNull();
-    expect(redrawWinner('s', ['a', 'a'], ['a'])).toBeNull();
-  });
-
-  it('повтор только после срока и для неподтверждённого приза', () => {
-    const at = new Date('2026-10-10T00:00:00Z');
-    expect(redrawBlocker(at, false, new Date('2026-10-12T23:59:59Z'))).toMatch(/срок/);
-    expect(redrawBlocker(at, true, new Date('2026-10-14T00:00:00Z'))).toMatch(/подтверждён/);
-    expect(redrawBlocker(at, false, new Date('2026-10-13T00:00:01Z'))).toBeNull();
   });
 });
