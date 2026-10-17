@@ -3,6 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
 import { pickWinners, sha256 } from './verify';
+import { canConfirm, canRedraw, redrawErrorText, winnerStatusText } from './winners';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -105,6 +106,15 @@ function DrawPage({ id }: { id: number }) {
       setMessage(errorText(e));
     }
   };
+  const redraw = async (position: number) => {
+    try {
+      await api.redraw(id, position);
+      setMessage('приз разыгран заново');
+      load();
+    } catch (e) {
+      setMessage(redrawErrorText(errorText(e)));
+    }
+  };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
   return (
@@ -162,18 +172,18 @@ function DrawPage({ id }: { id: number }) {
           <ol>
             {draw.winners.map((w) => (
               <li key={w.position}>
-                {w.participant} -{' '}
-                {w.status === 'confirmed'
-                  ? 'приз подтверждён'
-                  : w.status === 'unclaimed'
-                    ? 'не востребован'
-                    : `подтвердить до ${fmt(w.confirmBy)}`}
-                {w.status === 'pending' && (
+                {w.participant} - {winnerStatusText(w, fmt)}{' '}
+                {canConfirm(w) && (
                   <button
                     type="button"
                     onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
                   >
                     Подтвердить
+                  </button>
+                )}
+                {canRedraw(w) && (
+                  <button type="button" onClick={() => void redraw(w.position)}>
+                    Разыграть заново
                   </button>
                 )}
               </li>
