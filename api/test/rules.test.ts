@@ -34,6 +34,10 @@ describe('правила розыгрыша', () => {
     expect(ageOn('2008-10-06', now)).toBe(17);
     expect(rule(() => checkEntry(period, '2008-10-06', now))).toBe('R3');
     expect(rule(() => checkEntry(period, 'не дата', now))).toBe('R3');
+    // несуществующие даты не доходят до базы (DRAW-88)
+    for (const bad of ['1438-13-45', '2000-02-30', '2001-02-29', '2000-00-10', '2000-04-31'])
+      expect(rule(() => checkEntry(period, bad, now))).toBe('R3');
+    expect(rule(() => checkEntry(period, '2000-02-29', now))).toBeUndefined();
   });
 
   it('R4: победители воспроизводимы из зерна, хэш зерна публикуется заранее', () => {
