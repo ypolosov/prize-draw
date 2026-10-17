@@ -17,7 +17,8 @@ holders:
       github: ypolosov
       mcp: default # ключ MCP фабрики без имени учётки
   # ИИ-персонажи для видео-демо: свои учётки - бот Discord и пользователь Atlassian (группа ai-personas);
-  # пишут в Jira и Confluence все роли, стори из вики - только по точке решения story.
+  # пишут в Jira и Confluence все роли, стори из вики - только по точке решения story. В GitHub четыре
+  # персонажа действуют приложениями GitHub (учётка - имя приложения с [bot], в кавычках).
   pm-bot:
     kind: ai
     name: PM (ИИ)
@@ -39,6 +40,7 @@ holders:
       discord: "1560380641571508308"
       jira: "712020:60a01f69-2ed8-4e0b-a353-b5cdebb46f2e"
       confluence: "712020:60a01f69-2ed8-4e0b-a353-b5cdebb46f2e"
+      github: "architect-ai-factory[bot]"
   designer-bot:
     kind: ai
     name: Designer (ИИ)
@@ -53,6 +55,7 @@ holders:
       discord: "1560381356507398296"
       jira: "712020:47ae87fe-7e13-4728-8ea0-f21c42af68bb"
       confluence: "712020:47ae87fe-7e13-4728-8ea0-f21c42af68bb"
+      github: "frontend-ai-factory[bot]"
   backend-bot:
     kind: ai
     name: Backend (ИИ)
@@ -60,6 +63,7 @@ holders:
       discord: "1560381707440627824"
       jira: "712020:41e37ff7-488f-49d0-84fc-78be0d419a58"
       confluence: "712020:41e37ff7-488f-49d0-84fc-78be0d419a58"
+      github: "backend-ai-factory[bot]"
   qa-bot:
     kind: ai
     name: QA (ИИ)
@@ -74,6 +78,7 @@ holders:
       discord: "1560382022826983495"
       jira: "712020:3f787141-f967-45cc-bf8b-9eb71e7c01b4"
       confluence: "712020:3f787141-f967-45cc-bf8b-9eb71e7c01b4"
+      github: "devops-ai-factory[bot]"
 
 
 # Стенд демо - состав 3 (ai-factory, docs/compositions): все роли играют ИИ-персонажи, и решения
@@ -110,3 +115,6 @@ decisions:
   propose-rule: [architect] # !правила
   rerun-checks: [qa, frontend-developer, backend-developer, devops, qa-ai, frontend-developer-ai, backend-developer-ai, devops-ai] # !e2e, !ci, !судья
   design-check: [designer, product-owner, designer-ai] # !макет
+  # PR с правкой .factory/config.yml (проверки, пути ролей, правила-стражи): архитектор - правила из ADR,
+  # DevOps - проверки и возврат стенда к базе демо. Этот реестр меняет только владелец.
+  factory-config: [architect, devops]
