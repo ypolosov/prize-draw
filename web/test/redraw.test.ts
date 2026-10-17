@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Draw } from '../src/api';
-import { canRedraw, redrawMessage } from '../src/redraw';
+import { canRedraw, redrawMessage, runRedraw } from '../src/redraw';
 
 const draw = (participant: string): Draw => ({
   id: 1,
@@ -29,5 +29,22 @@ describe('результат повтора', () => {
   });
   it('без победителя на месте - общее сообщение', () => {
     expect(redrawMessage(draw('Борис'), 2)).toBe('приз разыгран заново');
+  });
+});
+
+describe('нажатие «Разыграть заново»', () => {
+  const errorText = (e: unknown) => (e instanceof Error ? e.message : '?');
+  it('просит повтор нужного приза и отдаёт нового победителя', async () => {
+    const redraw = vi.fn().mockResolvedValue(draw('Борис'));
+    const r = await runRedraw(redraw, 7, 1, errorText);
+    expect(redraw).toHaveBeenCalledWith(7, 1);
+    expect(r.draw?.winners[0].participant).toBe('Борис');
+    expect(r.message).toBe('приз 1: новый победитель - Борис');
+  });
+  it('при ошибке не меняет розыгрыш и показывает сообщение', async () => {
+    const redraw = vi.fn().mockRejectedValue(new Error('кандидатов не осталось'));
+    const r = await runRedraw(redraw, 7, 1, errorText);
+    expect(r.draw).toBeUndefined();
+    expect(r.message).toBe('Не удалось разыграть заново: кандидатов не осталось');
   });
 });
