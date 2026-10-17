@@ -2,6 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
+import { canRedraw, redrawMessage } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -174,6 +175,24 @@ function DrawPage({ id }: { id: number }) {
                     onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
                   >
                     Подтвердить
+                  </button>
+                )}
+                {canRedraw(w) && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void (async () => {
+                        try {
+                          const next = await api.redraw(id, w.position);
+                          setMessage(redrawMessage(next, w.position));
+                          setDraw(next);
+                        } catch (e) {
+                          setMessage(`Не удалось разыграть заново: ${errorText(e)}`);
+                        }
+                      })()
+                    }
+                  >
+                    Разыграть заново
                   </button>
                 )}
               </li>
