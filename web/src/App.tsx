@@ -2,6 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
+import { canRedraw } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -174,6 +175,14 @@ function DrawPage({ id }: { id: number }) {
                     onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
                   >
                     Подтвердить
+                  </button>
+                )}
+                {canRedraw(w) && (
+                  <button
+                    type="button"
+                    onClick={() => void act(() => api.redraw(id, w.position), 'приз разыгран заново')}
+                  >
+                    Разыграть заново
                   </button>
                 )}
               </li>
