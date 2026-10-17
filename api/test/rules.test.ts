@@ -34,6 +34,9 @@ describe('правила розыгрыша', () => {
     expect(ageOn('2008-10-06', now)).toBe(17);
     expect(rule(() => checkEntry(period, '2008-10-06', now))).toBe('R3');
     expect(rule(() => checkEntry(period, 'не дата', now))).toBe('R3');
+    expect(rule(() => checkEntry(period, '1234-13-45', now))).toBe('R3');
+    expect(rule(() => checkEntry(period, '2000-02-30', now))).toBe('R3');
+    expect(rule(() => checkEntry(period, '2001-02-29', now))).toBe('R3');
   });
 
   it('R4: победители воспроизводимы из зерна, хэш зерна публикуется заранее', () => {
