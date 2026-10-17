@@ -2,6 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
+import { canRedraw, redrawFailure } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -105,6 +106,14 @@ function DrawPage({ id }: { id: number }) {
       setMessage(errorText(e));
     }
   };
+  const redraw = async (position: number) => {
+    try {
+      setDraw(await api.redraw(id, position));
+      setMessage('приз разыгран заново');
+    } catch (e) {
+      setMessage(redrawFailure(errorText(e)));
+    }
+  };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
   return (
@@ -168,6 +177,11 @@ function DrawPage({ id }: { id: number }) {
                   : w.status === 'unclaimed'
                     ? 'не востребован'
                     : `подтвердить до ${fmt(w.confirmBy)}`}
+                {canRedraw(w) && (
+                  <button type="button" onClick={() => void redraw(w.position)}>
+                    Разыграть заново
+                  </button>
+                )}
                 {w.status === 'pending' && (
                   <button
                     type="button"
