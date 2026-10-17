@@ -1,9 +1,9 @@
 // Розыгрыш призов: список и создание розыгрышей (организатор), заявка и результаты с
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
 import { pickWinners, sha256 } from './verify';
-import { canConfirm, canRedraw, redrawErrorText, winnerStatusText } from './winners';
+import { canConfirm, canRedraw, runRedraw, winnerStatusText } from './winners';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -106,14 +106,17 @@ function DrawPage({ id }: { id: number }) {
       setMessage(errorText(e));
     }
   };
+  const [redrawing, setRedrawing] = useState<number>();
+  const redrawLock = useRef(false);
   const redraw = async (position: number) => {
-    try {
-      await api.redraw(id, position);
-      setMessage('приз разыгран заново');
-      load();
-    } catch (e) {
-      setMessage(redrawErrorText(errorText(e)));
-    }
+    if (redrawLock.current) return;
+    redrawLock.current = true;
+    setRedrawing(position);
+    const result = await runRedraw(() => api.redraw(id, position), errorText);
+    if (result.draw) setDraw(result.draw);
+    setMessage(result.message);
+    redrawLock.current = false;
+    setRedrawing(undefined);
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
@@ -182,7 +185,7 @@ function DrawPage({ id }: { id: number }) {
                   </button>
                 )}
                 {canRedraw(w) && (
-                  <button type="button" onClick={() => void redraw(w.position)}>
+                  <button type="button" disabled={redrawing !== undefined} onClick={() => void redraw(w.position)}>
                     Разыграть заново
                   </button>
                 )}
