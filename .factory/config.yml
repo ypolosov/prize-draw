@@ -18,3 +18,11 @@ roles:
   backend:
     paths:
       allowed: [api/]
+
+# Правила-стражи: добавленные строки изменения в paths не должны совпадать с forbid.
+rules:
+  - id: no-random-outside-seed
+    source: docs/adr/ADR-3-reproducible-draw.md
+    message: "случайность в api/src/ - только из зерна розыгрыша (ADR-3): Math.random и randomInt запрещены"
+    forbid: 'Math\.random|randomInt\('
+    paths: [api/src/]
