@@ -65,6 +65,25 @@ export function checkConfirm(drawnAt: Date, now: Date): void {
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
 }
 
+// Повтор приза (ADR-3, DRAW-83): следующий шаг той же последовательности. picked - все уже
+// выбранные победители, включая не подтвердивших приз; i = picked.length. Кандидатов нет - undefined.
+export function redrawWinner(seed: string, participants: string[], picked: string[]): string | undefined {
+  const taken = new Set(picked);
+  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
+  if (pool.length === 0) return undefined;
+  const n = createHmac('sha256', seed).update(`pick:${picked.length}`).digest().readBigUInt64BE(0);
+  return pool[Number(n % BigInt(pool.length))];
+}
+
+// R6: повтор возможен, только если приз не подтверждён и срок подтверждения истёк.
+// Возвращает причину отказа по-русски или null.
+export function checkRedraw(assignedAt: Date, confirmed: boolean, now: Date): string | null {
+  if (confirmed) return 'R6: приз подтверждён, разыгрывать заново нельзя';
+  if (now <= confirmDeadline(assignedAt))
+    return `R6: срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк, разыгрывать заново рано`;
+  return null;
+}
+
 export const TITLE_MIN = 3;
 export const TITLE_MAX = 120;
 
