@@ -55,6 +55,17 @@ export function pickWinners(seed: string, participants: string[], prizes: number
   return winners;
 }
 
+// Повтор невостребованного приза (ADR-3, DRAW-96): следующий шаг той же последовательности.
+// picked - все уже сделанные выборы, включая не подтвердивших приз; i - их число, кандидаты -
+// участники без них (R5). Нет кандидатов - null.
+export function pickNext(seed: string, participants: string[], picked: string[]): string | null {
+  const taken = new Set(picked);
+  const pool = [...new Set(participants)].filter((p) => !taken.has(p)).sort();
+  if (pool.length === 0) return null;
+  const n = createHmac('sha256', seed).update(`pick:${picked.length}`).digest().readBigUInt64BE(0);
+  return pool[Number(n % BigInt(pool.length))] ?? null;
+}
+
 // R6: приз подтверждают в течение CONFIRM_DAYS дней после выбора победителей.
 export function confirmDeadline(drawnAt: Date): Date {
   return new Date(drawnAt.getTime() + CONFIRM_DAYS * 24 * 60 * 60 * 1000);
