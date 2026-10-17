@@ -32,7 +32,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Часы стенда демо и в CI: сквозные проверки сдвигают время, как на стенде (api/src/clock.ts).
       - run: docker compose up -d --build --wait
+        env:
+          DEMO_CLOCK: 'on'
       - run: >
           docker run --rm --network host -e CI=1 -e E2E_BASE_URL=http://127.0.0.1:8090
           -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v1.63.0-noble
