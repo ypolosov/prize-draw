@@ -29,16 +29,6 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
-);
-ALTER TABLE winners ADD COLUMN IF NOT EXISTS drawn_at timestamptz;
-CREATE TABLE IF NOT EXISTS redraws (
-  draw_id int NOT NULL REFERENCES draws(id),
-  step int NOT NULL,
-  position int NOT NULL,
-  previous text NOT NULL,
-  participant text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (draw_id, step)
 );`;
 
 @Injectable()
