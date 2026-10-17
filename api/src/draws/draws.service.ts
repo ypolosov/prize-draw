@@ -14,12 +14,10 @@ import { Db } from '../db';
 import {
   checkConfirm,
   checkEntry,
-  checkRedraw,
   checkTitle,
   confirmDeadline,
   pickWinners,
   RuleViolation,
-  redrawWinner,
   seedHash,
 } from '../domain/rules';
 
@@ -39,8 +37,6 @@ export interface WinnerView {
   participant: string;
   status: 'pending' | 'confirmed' | 'unclaimed';
   confirmBy: string;
-  // Прежние победители этого места, не востребовавшие приз (повтор, ADR-3).
-  previous: string[];
 }
 
 export interface DrawView {
@@ -101,17 +97,9 @@ export class DrawsService {
       winners: [],
     };
     if (!d.drawn_at) return v;
-    const winners = await this.db.query<{
-      position: number;
-      participant: string;
-      confirmed_at: Date | null;
-      assigned_at: Date;
-    }>(
-      'SELECT position, participant, confirmed_at, COALESCE(assigned_at, $2) AS assigned_at FROM winners WHERE draw_id = $1 ORDER BY position',
-      [d.id, d.drawn_at],
-    );
-    const redrawn = await this.db.query<{ position: number; participant: string }>(
-      'SELECT position, participant FROM redrawn_winners WHERE draw_id = $1 ORDER BY participant',
+    const deadline = confirmDeadline(d.drawn_at);
+    const winners = await this.db.query<{ position: number; participant: string; confirmed_at: Date | null }>(
+      'SELECT position, participant, confirmed_at FROM winners WHERE draw_id = $1 ORDER BY position',
       [d.id],
     );
     const people = await this.db.query<{ participant: string }>('SELECT participant FROM entries WHERE draw_id = $1', [
@@ -122,16 +110,12 @@ export class DrawsService {
       seed: d.seed,
       drawnAt: d.drawn_at.toISOString(),
       participants: people.map((p) => p.participant).sort(),
-      winners: winners.map((w) => {
-        const deadline = confirmDeadline(w.assigned_at);
-        return {
-          position: w.position,
-          participant: w.participant,
-          status: w.confirmed_at ? 'confirmed' : now > deadline ? 'unclaimed' : 'pending',
-          confirmBy: deadline.toISOString(),
-          previous: redrawn.filter((r) => r.position === w.position).map((r) => r.participant),
-        };
-      }),
+      winners: winners.map((w) => ({
+        position: w.position,
+        participant: w.participant,
+        status: w.confirmed_at ? 'confirmed' : now > deadline ? 'unclaimed' : 'pending',
+        confirmBy: deadline.toISOString(),
+      })),
     };
   }
 
@@ -221,13 +205,13 @@ export class DrawsService {
     const d = await this.row(id);
     if (!d.drawn_at) throw new ConflictException('победители ещё не выбраны');
     const participant = text(input.participant, 'participant', 100);
-    const [w] = await this.db.query<{ participant: string; assigned_at: Date }>(
-      'SELECT participant, COALESCE(assigned_at, $3) AS assigned_at FROM winners WHERE draw_id = $1 AND position = $2',
-      [id, position, d.drawn_at],
+    const [w] = await this.db.query<{ participant: string; confirmed_at: Date | null }>(
+      'SELECT participant, confirmed_at FROM winners WHERE draw_id = $1 AND position = $2',
+      [id, position],
     );
     if (!w || w.participant !== participant) throw new NotFoundException('нет такого приза у этого участника');
     try {
-      checkConfirm(w.assigned_at, clock.now());
+      checkConfirm(d.drawn_at, clock.now());
     } catch (e) {
       rule(e);
     }
@@ -235,45 +219,6 @@ export class DrawsService {
       'UPDATE winners SET confirmed_at = now() WHERE draw_id = $1 AND position = $2 AND confirmed_at IS NULL',
       [id, position],
     );
-    return this.get(id);
-  }
-
-  // Повтор невостребованного приза (ADR-3, DRAW-83): следующий шаг той же последовательности
-  // среди участников, ещё не выбранных победителями; прежний победитель остаётся в числе выбранных.
-  async redraw(id: number, position: number): Promise<DrawView> {
-    await this.db.tx(async (c) => {
-      const d = (await c.query<DrawRow>('SELECT * FROM draws WHERE id = $1 FOR UPDATE', [id])).rows[0];
-      if (!d) throw new NotFoundException(`розыгрыш ${id} не найден`);
-      if (!d.drawn_at) throw new ConflictException('победители ещё не выбраны');
-      const w = (
-        await c.query<{ participant: string; confirmed_at: Date | null; assigned_at: Date }>(
-          'SELECT participant, confirmed_at, COALESCE(assigned_at, $3) AS assigned_at FROM winners WHERE draw_id = $1 AND position = $2',
-          [id, position, d.drawn_at],
-        )
-      ).rows[0];
-      if (!w) throw new NotFoundException(`приз ${position} не найден`);
-      const reason = checkRedraw(w.assigned_at, w.confirmed_at !== null, clock.now());
-      if (reason) throw new ConflictException({ rule: 'R6', message: reason });
-      const people = (
-        await c.query<{ participant: string }>('SELECT participant FROM entries WHERE draw_id = $1', [id])
-      ).rows.map((p) => p.participant);
-      const picked = [
-        ...(await c.query<{ participant: string }>('SELECT participant FROM winners WHERE draw_id = $1', [id])).rows,
-        ...(await c.query<{ participant: string }>('SELECT participant FROM redrawn_winners WHERE draw_id = $1', [id]))
-          .rows,
-      ].map((p) => p.participant);
-      const next = redrawWinner(d.seed, people, picked);
-      if (next === undefined) throw new ConflictException({ rule: 'R5', message: 'нет кандидатов для повтора' });
-      await c.query('INSERT INTO redrawn_winners (draw_id, position, participant) VALUES ($1, $2, $3)', [
-        id,
-        position,
-        w.participant,
-      ]);
-      await c.query(
-        'UPDATE winners SET participant = $3, confirmed_at = NULL, assigned_at = $4 WHERE draw_id = $1 AND position = $2',
-        [id, position, next, clock.now()],
-      );
-    });
     return this.get(id);
   }
 }

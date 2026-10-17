@@ -25,9 +25,6 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const real = new Date(Date.UTC(y, mo - 1, d));
-  if (real.getUTCFullYear() !== y || real.getUTCMonth() !== mo - 1 || real.getUTCDate() !== d)
-    throw new RuleViolation('R3', 'такой даты рождения не бывает');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
@@ -66,25 +63,6 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
-}
-
-// Повтор приза (ADR-3, DRAW-83): следующий шаг той же последовательности. picked - все уже
-// выбранные победители, включая не подтвердивших приз; i = picked.length. Кандидатов нет - undefined.
-export function redrawWinner(seed: string, participants: string[], picked: string[]): string | undefined {
-  const taken = new Set(picked);
-  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
-  if (pool.length === 0) return undefined;
-  const n = createHmac('sha256', seed).update(`pick:${picked.length}`).digest().readBigUInt64BE(0);
-  return pool[Number(n % BigInt(pool.length))];
-}
-
-// R6: повтор возможен, только если приз не подтверждён и срок подтверждения истёк.
-// Возвращает причину отказа по-русски или null.
-export function checkRedraw(assignedAt: Date, confirmed: boolean, now: Date): string | null {
-  if (confirmed) return 'R6: приз подтверждён, разыгрывать заново нельзя';
-  if (now <= confirmDeadline(assignedAt))
-    return `R6: срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк, разыгрывать заново рано`;
-  return null;
 }
 
 export const TITLE_MIN = 3;
