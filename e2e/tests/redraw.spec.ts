@@ -37,7 +37,7 @@ test('невостребованный приз разыгрывается за�
   await setClock(request, 4);
   await page.goto(`/#/draws/${draw.id}`);
   await page.getByRole('button', { name: 'Разыграть заново' }).click();
-  await expect(page.getByRole('alert')).toHaveText('приз разыгран заново');
+  await expect(page.getByRole('alert')).toHaveText('Приз разыгран заново: на экране новый победитель.');
   const after = (await (await request.get(`/api/draws/${draw.id}`)).json()).winners.at(-1).participant;
   expect(after).not.toBe(before);
   await expect(page.getByRole('listitem').filter({ hasText: after })).toBeVisible();
