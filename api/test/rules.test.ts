@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
+import {
+  ageOn,
+  checkConfirm,
+  checkEntry,
+  checkRedraw,
+  checkTitle,
+  pickWinners,
+  RuleViolation,
+  redrawWinner,
+  seedHash,
+} from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -66,5 +76,35 @@ describe('название розыгрыша', () => {
   it('отклоняет не строку', () => {
     expect(checkTitle(undefined)).toContain('строк');
     expect(checkTitle(42)).toContain('строк');
+  });
+});
+
+describe('повтор невостребованного приза (ADR-3, DRAW-83)', () => {
+  const people = ['dina', 'anna', 'boris', 'vera', 'gleb', 'eva'];
+
+  it('повтор - следующий шаг той же последовательности', () => {
+    const first = pickWinners('зерно-1', people, 2);
+    const third = pickWinners('зерно-1', people, 3)[2];
+    expect(redrawWinner('зерно-1', people, first)).toBe(third);
+  });
+
+  it('новый победитель не совпадает с прежними и не повторяется', () => {
+    const picked = pickWinners('зерно-2', people, 3);
+    const next = redrawWinner('зерно-2', people, picked) as string;
+    expect(next).toBeDefined();
+    expect(picked).not.toContain(next);
+    const after = redrawWinner('зерно-2', people, [...picked, next]) as string;
+    expect([...picked, next, after]).toEqual(pickWinners('зерно-2', people, 5));
+  });
+
+  it('кандидатов не осталось - undefined', () => {
+    expect(redrawWinner('s', people, pickWinners('s', people, 6))).toBeUndefined();
+  });
+
+  it('R6: повтор только после срока и только для неподтверждённого приза', () => {
+    const at = new Date('2026-10-10T00:00:00Z');
+    expect(checkRedraw(at, false, new Date('2026-10-12T23:59:59Z'))).not.toBeNull();
+    expect(checkRedraw(at, true, new Date('2026-10-14T00:00:00Z'))).not.toBeNull();
+    expect(checkRedraw(at, false, new Date('2026-10-13T00:00:01Z'))).toBeNull();
   });
 });

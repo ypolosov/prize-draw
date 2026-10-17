@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
+);
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS assigned_at timestamptz;
+-- Не востребовавшие приз победители, замененные повтором (ADR-3): остаются в числе выбранных.
+CREATE TABLE IF NOT EXISTS redrawn_winners (
+  draw_id int NOT NULL REFERENCES draws(id),
+  position int NOT NULL,
+  participant text NOT NULL,
+  PRIMARY KEY (draw_id, participant)
 );`;
 
 @Injectable()
