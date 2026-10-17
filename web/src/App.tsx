@@ -2,6 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
+import { canRedraw, runRedraw } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -92,6 +93,7 @@ function DrawPage({ id }: { id: number }) {
   const [participant, setParticipant] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [message, setMessage] = useState('');
+  const [redrawing, setRedrawing] = useState(false);
   const load = useCallback(() => {
     api.get(id).then(setDraw, (e) => setMessage(errorText(e)));
   }, [id]);
@@ -104,6 +106,14 @@ function DrawPage({ id }: { id: number }) {
     } catch (e) {
       setMessage(errorText(e));
     }
+  };
+  const redraw = async (position: number) => {
+    if (redrawing) return;
+    setRedrawing(true);
+    const r = await runRedraw(() => api.redraw(id, position), errorText);
+    if (r.ok) setDraw(r.draw);
+    setMessage(r.message);
+    setRedrawing(false);
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
@@ -168,6 +178,11 @@ function DrawPage({ id }: { id: number }) {
                   : w.status === 'unclaimed'
                     ? 'не востребован'
                     : `подтвердить до ${fmt(w.confirmBy)}`}
+                {canRedraw(w) && (
+                  <button type="button" disabled={redrawing} onClick={() => void redraw(w.position)}>
+                    Разыграть заново
+                  </button>
+                )}
                 {w.status === 'pending' && (
                   <button
                     type="button"
