@@ -4,7 +4,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, type Draw, type Winner } from './api';
 import { canRedraw, runRedraw } from './redraw';
-import { pickWinners, sha256 } from './verify';
+import { recomputeWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -98,8 +98,8 @@ function Fairness({ draw }: { draw: Draw }) {
     if (!seed || !participants) return;
     (async () => {
       const hashOk = (await sha256(seed)) === draw.seedHash;
-      const again = await pickWinners(seed, participants, draw.prizes);
-      const winnersOk = again.join() === draw.winners.map((w) => w.participant).join();
+      const again = await recomputeWinners(seed, participants, draw.prizes, draw.unclaimed);
+      const winnersOk = again?.join() === draw.winners.map((w) => w.participant).join();
       setOk(hashOk && winnersOk);
       setResult(
         hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
