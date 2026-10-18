@@ -26,3 +26,8 @@ rules:
     message: "случайность в api/src/ - только из зерна розыгрыша (ADR-3): Math.random и randomInt запрещены"
     forbid: 'Math\.random|randomInt\('
     paths: [api/src/]
+  - id: utc-dates-for-claim-deadline
+    source: "замечания к PR 114, 115, 118"
+    message: "Даты считаются в локальном часовом поясе: для срока подтверждения приза используйте UTC (getUTC*/setUTC*, Date.UTC или timestamp)"
+    paths: ["api/src/", "web/src/"]
+    forbid: "\\.(get(FullYear|Month|Date|Day|Hours|Minutes|Seconds)|set(FullYear|Month|Date|Hours|Minutes|Seconds)|toLocale(Date|Time)?String)\\s*\\("
