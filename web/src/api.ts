@@ -18,6 +18,7 @@ export interface Draw {
   drawnAt?: string;
   participants?: string[];
   winners: Winner[];
+  unclaimed?: { position: number; participant: string }[];
 }
 
 export class ApiError extends Error {
