@@ -42,17 +42,33 @@ export function seedHash(seed: string): string {
   return createHash('sha256').update(seed).digest('hex');
 }
 
+// Шаг i последовательности выбора: индекс - первые 8 байт HMAC-SHA256(зерно, "pick:i") по модулю
+// числа оставшихся (R4).
+function pickIndex(seed: string, step: number, remaining: number): number {
+  const n = createHmac('sha256', seed).update(`pick:${step}`).digest().readBigUInt64BE(0);
+  return Number(n % BigInt(remaining));
+}
+
 // R4, R5: участники - без повторов, по возрастанию (как Array.prototype.sort), затем выбор без
 // возвращения: на шаге i индекс - первые 8 байт HMAC-SHA256(зерно, "pick:i") по модулю остатка.
 export function pickWinners(seed: string, participants: string[], prizes: number): string[] {
   const pool = [...new Set(participants)].sort();
   const winners: string[] = [];
   for (let i = 0; i < prizes && pool.length > 0; i++) {
-    const n = createHmac('sha256', seed).update(`pick:${i}`).digest().readBigUInt64BE(0);
-    const [w] = pool.splice(Number(n % BigInt(pool.length)), 1);
+    const [w] = pool.splice(pickIndex(seed, i, pool.length), 1);
     if (w !== undefined) winners.push(w);
   }
   return winners;
+}
+
+// Повтор невостребованного приза (ADR-3, DRAW-124): следующий шаг той же последовательности,
+// i - число уже сделанных выборов (chosen: все выбранные ранее, включая не востребовавших приз).
+// Кандидатов не осталось - undefined.
+export function pickNextWinner(seed: string, participants: string[], chosen: string[]): string | undefined {
+  const taken = new Set(chosen);
+  const pool = [...new Set(participants)].filter((p) => !taken.has(p)).sort();
+  if (pool.length === 0) return undefined;
+  return pool[pickIndex(seed, taken.size, pool.length)];
 }
 
 // R6: приз подтверждают в течение CONFIRM_DAYS дней после выбора победителей.
@@ -63,6 +79,13 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
+}
+
+// R6: повтор возможен, только если приз не подтверждён и срок подтверждения истёк.
+export function checkRedraw(drawnAt: Date, confirmed: boolean, now: Date): void {
+  if (confirmed) throw new RuleViolation('R6', 'приз подтверждён, повтор невозможен');
+  if (now <= confirmDeadline(drawnAt))
+    throw new RuleViolation('R6', `срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк`);
 }
 
 export const TITLE_MIN = 3;

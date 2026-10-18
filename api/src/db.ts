@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
+);
+-- Повтор (DRAW-125): время выбора победителя места и прежние победители, не востребовавшие приз.
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS drawn_at timestamptz;
+CREATE TABLE IF NOT EXISTS unclaimed (
+  draw_id int NOT NULL REFERENCES draws(id),
+  position int NOT NULL,
+  participant text NOT NULL,
+  PRIMARY KEY (draw_id, participant)
 );`;
 
 @Injectable()
