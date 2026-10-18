@@ -77,3 +77,21 @@ export function checkTitle(title: unknown): string | null {
     return `название должно быть от ${TITLE_MIN} до ${TITLE_MAX} символов`;
   return null;
 }
+
+// Повтор невостребованного приза (ADR-3, DRAW-109): следующий шаг той же последовательности,
+// k - число уже выбранных; кандидаты - участники без выбранных (в том числе не подтвердивших
+// приз), по возрастанию. undefined - кандидатов не осталось.
+export function redrawWinner(seed: string, participants: string[], picked: string[]): string | undefined {
+  const taken = new Set(picked);
+  const pool = [...new Set(participants)].filter((p) => !taken.has(p)).sort();
+  if (pool.length === 0) return undefined;
+  const n = createHmac('sha256', seed).update(`pick:${picked.length}`).digest().readBigUInt64BE(0);
+  return pool[Number(n % BigInt(pool.length))];
+}
+
+// R6: повтор доступен, когда срок подтверждения истёк и приз не подтверждён.
+export function checkRedraw(drawnAt: Date, confirmed: boolean, now: Date): void {
+  if (confirmed) throw new RuleViolation('R6', 'приз подтверждён, повтор невозможен');
+  if (now <= confirmDeadline(drawnAt))
+    throw new RuleViolation('R6', `срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк`);
+}

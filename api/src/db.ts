@@ -29,6 +29,13 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
+);
+CREATE TABLE IF NOT EXISTS redrawn (
+  id serial PRIMARY KEY,
+  draw_id int NOT NULL REFERENCES draws(id),
+  position int NOT NULL,
+  participant text NOT NULL,
+  UNIQUE (draw_id, participant)
 );`;
 
 @Injectable()

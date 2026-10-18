@@ -1,5 +1,16 @@
+import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
+import {
+  ageOn,
+  checkConfirm,
+  checkEntry,
+  checkRedraw,
+  checkTitle,
+  pickWinners,
+  RuleViolation,
+  redrawWinner,
+  seedHash,
+} from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -66,5 +77,43 @@ describe('название розыгрыша', () => {
   it('отклоняет не строку', () => {
     expect(checkTitle(undefined)).toContain('строк');
     expect(checkTitle(42)).toContain('строк');
+  });
+});
+
+describe('повтор невостребованного приза', () => {
+  const people = ['dina', 'anna', 'boris', 'vera', 'gleb'];
+
+  it('R4: повтор - следующий шаг той же последовательности, k = число выбранных', () => {
+    const picked = pickWinners('зерно-1', people, 2);
+    const rest = people.filter((p) => !picked.includes(p)).sort();
+    const n = createHmac('sha256', 'зерно-1').update('pick:2').digest().readBigUInt64BE(0);
+    expect(redrawWinner('зерно-1', people, picked)).toBe(rest[Number(n % BigInt(rest.length))]);
+  });
+
+  it('повтор совпадает с пересчётом выбора на один приз больше', () => {
+    const picked = pickWinners('зерно-2', people, 2);
+    expect(redrawWinner('зерно-2', [...people].reverse(), picked)).toBe(pickWinners('зерно-2', people, 3)[2]);
+  });
+
+  it('R5: не выбирает уже выбранных, включая не подтвердившего приз', () => {
+    let picked = pickWinners('s', people, 1);
+    for (let i = 0; i < 4; i++) {
+      const w = redrawWinner('s', people, picked);
+      expect(w).toBeDefined();
+      expect(picked).not.toContain(w);
+      picked = [...picked, w as string];
+    }
+    expect(new Set(picked).size).toBe(5);
+  });
+
+  it('некого выбирать - undefined', () => {
+    expect(redrawWinner('s', people, people)).toBeUndefined();
+  });
+
+  it('R6: повтор только после срока и только для неподтверждённого приза', () => {
+    const drawn = new Date('2026-10-10T00:00:00Z');
+    expect(rule(() => checkRedraw(drawn, false, new Date('2026-10-13T00:00:01Z')))).toBeUndefined();
+    expect(rule(() => checkRedraw(drawn, false, new Date('2026-10-13T00:00:00Z')))).toBe('R6');
+    expect(rule(() => checkRedraw(drawn, true, new Date('2026-10-20T00:00:00Z')))).toBe('R6');
   });
 });
