@@ -49,10 +49,4 @@ export class DrawsController {
   ): Promise<DrawView> {
     return this.draws.confirm(id, position, body ?? {});
   }
-
-  @Post(':id/winners/:position/redraw')
-  @HttpCode(200)
-  redraw(@Param('id', ParseIntPipe) id: number, @Param('position', ParseIntPipe) position: number): Promise<DrawView> {
-    return this.draws.redraw(id, position);
-  }
 }
