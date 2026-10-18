@@ -1,9 +1,9 @@
 // Розыгрыш призов: список и создание розыгрышей (организатор), заявка и результаты с
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>. Вид - по макетам дизайнера,
 // классы - из styles.css.
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, type Draw, type Winner } from './api';
-import { canRedraw, NO_CANDIDATES, redrawMessage } from './redraw';
+import { canRedraw, runRedraw } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -126,6 +126,8 @@ function DrawPage({ id }: { id: number }) {
   const [birthDate, setBirthDate] = useState('');
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const redrawing = useRef(false);
   const load = useCallback(() => {
     api.get(id).then(setDraw, (e) => {
       setMessage(errorText(e));
@@ -145,15 +147,15 @@ function DrawPage({ id }: { id: number }) {
     }
   };
   const redraw = async (w: Winner) => {
-    try {
-      const next = await api.redraw(id, w.position);
-      setMessage(redrawMessage(w.position, w.participant, next.winners));
-      setFailed(false);
-      setDraw(next);
-    } catch (e) {
-      setMessage(e instanceof ApiError ? NO_CANDIDATES : errorText(e));
-      setFailed(true);
-    }
+    if (redrawing.current) return;
+    redrawing.current = true;
+    setBusy(true);
+    const out = await runRedraw((position) => api.redraw(id, position), w, errorText);
+    if (out.draw) setDraw(out.draw);
+    setMessage(out.message);
+    setFailed(out.failed);
+    redrawing.current = false;
+    setBusy(false);
   };
   if (!draw) return <Message text={message || 'загружаю...'} error={failed} />;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
@@ -264,7 +266,7 @@ function DrawPage({ id }: { id: number }) {
                   {canRedraw(w) && (
                     <>
                       <p className="muted">{w.participant} не подтвердил приз за 3 дня.</p>
-                      <button className="btn primary" type="button" onClick={() => void redraw(w)}>
+                      <button className="btn primary" type="button" disabled={busy} onClick={() => void redraw(w)}>
                         Разыграть заново
                       </button>
                     </>
