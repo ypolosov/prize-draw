@@ -25,10 +25,6 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const real = new Date(Date.UTC(2000, mo - 1, d));
-  real.setUTCFullYear(y);
-  if (real.getUTCFullYear() !== y || real.getUTCMonth() !== mo - 1 || real.getUTCDate() !== d)
-    throw new RuleViolation('R3', 'дата рождения - существующая дата ГГГГ-ММ-ДД');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
@@ -67,24 +63,6 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
-}
-
-// Повтор невостребованного приза (ADR-3, DRAW-102): следующий шаг той же последовательности.
-// picked - все уже выбранные в порядке выбора, включая не подтвердивших приз; шаг i = picked.length.
-// Кандидатов не осталось - undefined.
-export function pickNext(seed: string, participants: string[], picked: string[]): string | undefined {
-  const taken = new Set(picked);
-  const pool = [...new Set(participants)].filter((p) => !taken.has(p)).sort();
-  if (pool.length === 0) return undefined;
-  const n = createHmac('sha256', seed).update(`pick:${picked.length}`).digest().readBigUInt64BE(0);
-  return pool[Number(n % BigInt(pool.length))];
-}
-
-// R6: повторить можно только неподтверждённый приз и только после срока подтверждения.
-export function checkRedraw(pickedAt: Date, confirmed: boolean, now: Date): void {
-  if (confirmed) throw new RuleViolation('R6', 'приз уже подтверждён, повтор невозможен');
-  if (now <= confirmDeadline(pickedAt))
-    throw new RuleViolation('R6', `срок подтверждения (${CONFIRM_DAYS} дня) ещё не истёк, повтор невозможен`);
 }
 
 export const TITLE_MIN = 3;
