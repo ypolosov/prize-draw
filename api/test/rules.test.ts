@@ -37,6 +37,13 @@ describe('правила розыгрыша', () => {
     expect(rule(() => checkEntry(period, 'не дата', now))).toBe('R3');
   });
 
+  it('R3: несуществующая календарная дата рождения отклоняется (DRAW-122)', () => {
+    const now = new Date('2026-10-05T00:00:00Z');
+    for (const bad of ['0297-13-45', '2000-02-30', '2001-02-29', '2000-00-10', '2000-04-31'])
+      expect(rule(() => checkEntry(period, bad, now))).toBe('R3');
+    expect(ageOn('2000-02-29', now)).toBe(26);
+  });
+
   it('R4: победители воспроизводимы из зерна, хэш зерна публикуется заранее', () => {
     const people = ['dina', 'anna', 'boris', 'vera', 'gleb'];
     const a = pickWinners('зерно-1', people, 2);
