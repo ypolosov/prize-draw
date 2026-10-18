@@ -3,6 +3,7 @@
 // классы - из styles.css.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw, type Winner } from './api';
+import { canRedraw, NO_CANDIDATES, redrawMessage } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -143,6 +144,17 @@ function DrawPage({ id }: { id: number }) {
       setFailed(true);
     }
   };
+  const redraw = async (w: Winner) => {
+    try {
+      const next = await api.redraw(id, w.position);
+      setMessage(redrawMessage(w.position, w.participant, next.winners));
+      setFailed(false);
+      setDraw(next);
+    } catch (e) {
+      setMessage(e instanceof ApiError ? NO_CANDIDATES : errorText(e));
+      setFailed(true);
+    }
+  };
   if (!draw) return <Message text={message || 'загружаю...'} error={failed} />;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
   const stage = draw.drawnAt ? 'победители выбраны' : open ? 'приём заявок' : 'приём заявок закончен';
@@ -237,6 +249,29 @@ function DrawPage({ id }: { id: number }) {
                 );
               })}
             </ol>
+          </section>
+          <section className="panel">
+            <h3 className="section-title">Призы и победители</h3>
+            <div className="grid">
+              {draw.winners.map((w) => (
+                <div className={canRedraw(w) ? 'card attention' : 'card'} key={w.position}>
+                  {w.status === 'confirmed' && <span className="badge ok">подтвердил</span>}
+                  {w.status === 'pending' && <span className="badge wait">ждёт подтверждения</span>}
+                  {w.status === 'unclaimed' && <span className="badge bad">невостребованный приз</span>}
+                  <h4 className="card-title">Приз {w.position}</h4>
+                  <p className="muted">Победитель: {w.participant}</p>
+                  {w.status === 'pending' && <p className="status">{prizeStatus(w).text}</p>}
+                  {canRedraw(w) && (
+                    <>
+                      <p className="muted">{w.participant} не подтвердил приз за 3 дня.</p>
+                      <button className="btn primary" type="button" onClick={() => void redraw(w)}>
+                        Разыграть заново
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
           <section className="panel">
             <h3 className="section-title">Честная игра</h3>
