@@ -1,6 +1,6 @@
 // Розыгрыш призов: список и создание розыгрышей (организатор), заявка и результаты с
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
 import { canRedraw, REDRAW_FAILED } from './redraw';
 import { pickWinners, sha256 } from './verify';
@@ -97,6 +97,8 @@ function DrawPage({ id }: { id: number }) {
     api.get(id).then(setDraw, (e) => setMessage(errorText(e)));
   }, [id]);
   useEffect(load, [load]);
+  const redrawing = useRef(new Set<number>());
+  const [busy, setBusy] = useState<number[]>([]);
   const act = async (f: () => Promise<unknown>, ok: string) => {
     try {
       await f();
@@ -108,11 +110,17 @@ function DrawPage({ id }: { id: number }) {
   };
   // Повтор: при ошибке данные приза не меняем, только сообщаем.
   const redraw = async (position: number) => {
+    if (redrawing.current.has(position)) return;
+    redrawing.current.add(position);
+    setBusy([...redrawing.current]);
     try {
       setDraw(await api.redraw(id, position));
       setMessage('приз разыгран заново');
     } catch {
       setMessage(REDRAW_FAILED);
+    } finally {
+      redrawing.current.delete(position);
+      setBusy([...redrawing.current]);
     }
   };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
@@ -187,7 +195,7 @@ function DrawPage({ id }: { id: number }) {
                   </button>
                 )}
                 {canRedraw(w) && (
-                  <button type="button" onClick={() => void redraw(w.position)}>
+                  <button type="button" disabled={busy.includes(w.position)} onClick={() => void redraw(w.position)}>
                     Разыграть заново
                   </button>
                 )}
