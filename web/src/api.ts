@@ -18,6 +18,8 @@ export interface Draw {
   drawnAt?: string;
   participants?: string[];
   winners: Winner[];
+  // Победители, не подтвердившие приз, в порядке повторов.
+  unclaimed?: { position: number; participant: string }[];
 }
 
 export class ApiError extends Error {

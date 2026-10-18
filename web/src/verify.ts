@@ -23,3 +23,39 @@ export async function pickWinners(seed: string, participants: string[], prizes: 
   }
   return winners;
 }
+
+// Победитель, не подтвердивший приз: его место занял повтор (ADR-3).
+export interface Replaced {
+  position: number;
+  participant: string;
+}
+
+// Итог по последовательности выборов: сначала призы, затем повторы по порядку. На каждом шаге
+// i равно числу уже сделанных выборов, выбранный выходит из списка (R5). Возвращает победителей
+// по местам (место - индекс + 1) или undefined, если повтор не сходится с последовательностью.
+export async function recomputeWinners(
+  seed: string,
+  participants: string[],
+  prizes: number,
+  replaced: Replaced[] = [],
+): Promise<string[] | undefined> {
+  const pool = [...new Set(participants)].sort();
+  const winners: string[] = [];
+  let step = 0;
+  const pick = async (): Promise<string | undefined> => {
+    if (pool.length === 0) return undefined;
+    const n = (await hmac(seed, `pick:${step++}`)).getBigUint64(0);
+    return pool.splice(Number(n % BigInt(pool.length)), 1)[0];
+  };
+  for (let i = 0; i < prizes; i++) {
+    const w = await pick();
+    if (w !== undefined) winners.push(w);
+  }
+  for (const r of replaced) {
+    if (winners[r.position - 1] !== r.participant) return undefined;
+    const next = await pick();
+    if (next === undefined) return undefined;
+    winners[r.position - 1] = next;
+  }
+  return winners;
+}
