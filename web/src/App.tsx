@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
 import { canRedraw, REDRAW_FAILED } from './redraw';
-import { pickWinners, sha256 } from './verify';
+import { verifyDraw } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -74,16 +74,10 @@ function DrawList() {
 function Fairness({ draw }: { draw: Draw }) {
   const [result, setResult] = useState('проверяю...');
   useEffect(() => {
-    const { seed, participants } = draw;
-    if (!seed || !participants) return;
-    (async () => {
-      const hashOk = (await sha256(seed)) === draw.seedHash;
-      const again = await pickWinners(seed, participants, draw.prizes);
-      const winnersOk = again.join() === draw.winners.map((w) => w.participant).join();
-      setResult(
-        hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
-      );
-    })();
+    if (!draw.seed || !draw.participants) return;
+    verifyDraw(draw).then((ok) =>
+      setResult(ok ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном'),
+    );
   }, [draw]);
   return <p data-testid="fairness">{result}</p>;
 }
