@@ -2,6 +2,7 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
+import { canRedraw, REDRAW_FAILED } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -105,6 +106,15 @@ function DrawPage({ id }: { id: number }) {
       setMessage(errorText(e));
     }
   };
+  // Повтор: при ошибке данные приза не меняем, только сообщаем.
+  const redraw = async (position: number) => {
+    try {
+      setDraw(await api.redraw(id, position));
+      setMessage('приз разыгран заново');
+    } catch {
+      setMessage(REDRAW_FAILED);
+    }
+  };
   if (!draw) return <p role="alert">{message || 'загружаю...'}</p>;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
   return (
@@ -174,6 +184,11 @@ function DrawPage({ id }: { id: number }) {
                     onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
                   >
                     Подтвердить
+                  </button>
+                )}
+                {canRedraw(w) && (
+                  <button type="button" onClick={() => void redraw(w.position)}>
+                    Разыграть заново
                   </button>
                 )}
               </li>
