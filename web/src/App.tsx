@@ -3,6 +3,7 @@
 // классы - из styles.css.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError, api, type Draw, type Winner } from './api';
+import { canRedraw, type Redrawn, redrawOutcome, unclaimedWinners } from './redraw';
 import { pickWinners, sha256 } from './verify';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
@@ -125,6 +126,8 @@ function DrawPage({ id }: { id: number }) {
   const [birthDate, setBirthDate] = useState('');
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
+  const [redrawn, setRedrawn] = useState<Redrawn>();
+  const [redrawFailed, setRedrawFailed] = useState<{ position: number; participant: string }>();
   const load = useCallback(() => {
     api.get(id).then(setDraw, (e) => {
       setMessage(errorText(e));
@@ -143,8 +146,25 @@ function DrawPage({ id }: { id: number }) {
       setFailed(true);
     }
   };
+  const redraw = async (w: Winner) => {
+    if (!draw) return;
+    try {
+      const after = await api.redraw(id, w.position);
+      setRedrawn(redrawOutcome(draw.winners, after.winners, w.position));
+      setRedrawFailed(undefined);
+      setMessage('');
+      setDraw(after);
+    } catch (e) {
+      setRedrawn(undefined);
+      setRedrawFailed({ position: w.position, participant: w.participant });
+      setMessage(e instanceof ApiError ? '' : errorText(e));
+      setFailed(true);
+    }
+  };
   if (!draw) return <Message text={message || 'загружаю...'} error={failed} />;
   const open = !draw.drawnAt && new Date(draw.closesAt) > new Date();
+  const unclaimed = unclaimedWinners(draw.winners);
+  const first = unclaimed[0];
   const stage = draw.drawnAt ? 'победители выбраны' : open ? 'приём заявок' : 'приём заявок закончен';
   return (
     <>
@@ -161,6 +181,21 @@ function DrawPage({ id }: { id: number }) {
           Хэш зерна (R4): <code data-testid="seed-hash">{draw.seedHash}</code>
         </p>
       </section>
+      {first && (
+        <section className="hero" data-testid="unclaimed-banner">
+          <span className="badge bad">невостребованный приз</span>
+          <h2 className="display">Призы ждут нового победителя</h2>
+          <p className="lead">
+            {unclaimed.map((w) => w.participant).join(', ')}: приз не подтверждён за 3 дня. Разыграйте его заново: новый
+            победитель выбирается среди тех, кто ещё не выигрывал в этом розыгрыше.
+          </p>
+          <div className="actions">
+            <button className="btn primary" type="button" onClick={() => void redraw(first)}>
+              Разыграть заново
+            </button>
+          </div>
+        </section>
+      )}
       {open && (
         <section className="panel">
           <h3 className="section-title">Заявка на участие</h3>
@@ -224,6 +259,11 @@ function DrawPage({ id }: { id: number }) {
                     <span className="place">{w.position}</span>
                     <span className="winner-name">{w.participant}</span>
                     <span className={s.tone}>{s.text}</span>
+                    {canRedraw(w) && (
+                      <button className="btn primary small" type="button" onClick={() => void redraw(w)}>
+                        Разыграть заново
+                      </button>
+                    )}
                     {w.status === 'pending' && (
                       <button
                         className="btn primary small"
@@ -238,6 +278,36 @@ function DrawPage({ id }: { id: number }) {
               })}
             </ol>
           </section>
+          {redrawn && (
+            <section className="card" data-testid="redraw-ok">
+              <span className="badge ok">повтор прошёл</span>
+              <h3 className="card-title">
+                На месте {redrawn.position} новый победитель - {redrawn.current.participant}
+              </h3>
+              <p className="muted">
+                У {redrawn.current.participant} есть 3 дня, чтобы подтвердить приз. Прежний победитель -{' '}
+                {redrawn.previous}: приз не подтверждён в срок.
+              </p>
+              <p className="muted">Подтвердить до {fmt(redrawn.current.confirmBy)}.</p>
+              <button className="btn small" type="button" onClick={() => setRedrawn(undefined)}>
+                Понятно
+              </button>
+            </section>
+          )}
+          {redrawFailed && (
+            <section className="card attention" data-testid="redraw-error">
+              <span className="badge bad">повтор не прошёл</span>
+              <h3 className="card-title">Не удалось разыграть приз заново</h3>
+              <p className="muted">
+                Разыграть приз некому: в розыгрыше не осталось участников, которые ещё не выигрывали. Приз остаётся
+                невостребованным.
+              </p>
+              <p className="muted">Победитель приза не изменился - {redrawFailed.participant}.</p>
+              <button className="btn primary small" type="button" onClick={() => setRedrawFailed(undefined)}>
+                Понятно
+              </button>
+            </section>
+          )}
           <section className="panel">
             <h3 className="section-title">Честная игра</h3>
             <p className="muted">
