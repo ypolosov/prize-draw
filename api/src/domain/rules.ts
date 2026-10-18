@@ -25,11 +25,6 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  // Дата должна существовать в календаре: иначе база падает с out of range.
-  const real = new Date(Date.UTC(2000, mo - 1, d));
-  real.setUTCFullYear(y);
-  if (y < 1 || mo < 1 || mo > 12 || d < 1 || real.getUTCMonth() + 1 !== mo || real.getUTCDate() !== d)
-    throw new RuleViolation('R3', 'такой даты рождения нет в календаре');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
@@ -68,25 +63,6 @@ export function confirmDeadline(drawnAt: Date): Date {
 export function checkConfirm(drawnAt: Date, now: Date): void {
   if (now > confirmDeadline(drawnAt))
     throw new RuleViolation('R6', `приз не подтверждён за ${CONFIRM_DAYS} дня и не востребован`);
-}
-
-// Повтор невостребованного приза (ADR-3, DRAW-116): следующий шаг той же последовательности.
-// chosen - все уже выбранные победители, включая не подтвердивших приз; их число - номер шага i.
-// Кандидаты - участники без выбранных, по возрастанию. Нет кандидатов - null.
-export function pickRedraw(seed: string, participants: string[], chosen: string[]): string | null {
-  const taken = new Set(chosen);
-  const pool = [...new Set(participants)].sort().filter((p) => !taken.has(p));
-  if (pool.length === 0) return null;
-  const n = createHmac('sha256', seed).update(`pick:${chosen.length}`).digest().readBigUInt64BE(0);
-  return pool[Number(n % BigInt(pool.length))] ?? null;
-}
-
-// Повтор доступен для приза, не подтверждённого за CONFIRM_DAYS дня. Возвращает причину отказа
-// или null, если повтор можно делать.
-export function checkRedraw(assignedAt: Date, confirmed: boolean, now: Date): string | null {
-  if (confirmed) return 'приз уже подтверждён';
-  if (now <= confirmDeadline(assignedAt)) return `срок подтверждения приза (${CONFIRM_DAYS} дня) ещё не вышел`;
-  return null;
 }
 
 export const TITLE_MIN = 3;
