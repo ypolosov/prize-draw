@@ -18,7 +18,6 @@ export interface Draw {
   drawnAt?: string;
   participants?: string[];
   winners: Winner[];
-  unclaimed?: { position: number; participant: string }[];
 }
 
 export class ApiError extends Error {
@@ -54,5 +53,4 @@ export const api = {
   draw: (id: number) => call<Draw>('POST', `/draws/${id}/draw`),
   confirm: (id: number, position: number, participant: string) =>
     call<Draw>('POST', `/draws/${id}/winners/${position}/confirm`, { participant }),
-  redraw: (id: number, position: number) => call<Draw>('POST', `/draws/${id}/winners/${position}/redraw`),
 };

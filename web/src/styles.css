@@ -1,0 +1,415 @@
+/* Дизайн веб-приложения - по макетам дизайнера (Figma, файл "Дизайн Розыгрыш призов"): тёмная
+   тема, заголовки Unbounded, текст Manrope (шрифты OFL - web/public/fonts). Новые экраны и
+   состояния собираются из этих классов; новых цветов и шрифтов не заводить. */
+
+@font-face {
+  font-family: "Unbounded";
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Unbounded.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Manrope.ttf") format("truetype");
+}
+
+:root {
+  --bg: #0e0b10;
+  --side: #120e14;
+  --panel: #17121a;
+  --panel-2: #211a25;
+  --line: #2a2230;
+  --text: #f4eef6;
+  --muted: #cfc4d6;
+  --faint: #a79bb0;
+  --accent: #ffc93c;
+  --accent-ink: #1a1206;
+  --red: #e5304b;
+  --red-soft: #ff7a8e;
+  --green: #5be39a;
+  --green-bg: #12301f;
+  --yellow-bg: #3a2e0c;
+  --red-bg: #33172a;
+  --display: "Unbounded", "Manrope", system-ui, sans-serif;
+  --body: "Manrope", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 13px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* Каркас: боковое меню и содержимое; на узком экране меню уходит наверх. */
+.app {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 100vh;
+}
+
+.side {
+  flex: 1 1 220px;
+  max-width: 260px;
+  background: var(--side);
+  border-right: 1px solid var(--line);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 22px;
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.side-label {
+  margin: 12px 6px 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.nav-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav-link.active {
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.content {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 {
+  margin: 0 12px 0 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #3a2f3f;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.page {
+  width: 100%;
+  max-width: 1040px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Блоки: главный (герой), панель, карточка. */
+.hero {
+  border-radius: 20px;
+  border: 1px solid #5a1f2c;
+  background: radial-gradient(circle at 85% 40%, #5a1426 0%, #2a0e17 50%, #1a0c12 100%);
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.display {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.lead {
+  margin: 0;
+  font-size: 17px;
+  color: #f1e6ec;
+}
+
+.panel {
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card.attention {
+  border-color: var(--red);
+  background: #1e1117;
+}
+
+.card-title {
+  margin: 0;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Метки состояния: подтверждено, ждёт, не подтверждено в срок, нейтральная. */
+.badge {
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #3a2a31;
+  color: var(--text);
+}
+
+.badge.ok {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.badge.wait {
+  background: var(--yellow-bg);
+  color: var(--accent);
+}
+
+.badge.bad {
+  background: var(--red);
+  color: #ffffff;
+}
+
+/* Победители: место, имя, состояние приза, действие. */
+.winners {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.winner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.place {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2e2a3a;
+  font-weight: 800;
+}
+
+.winner-name {
+  flex: 1 1 160px;
+  font-weight: 700;
+}
+
+.status {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.status.ok {
+  color: var(--green);
+}
+
+.status.bad {
+  color: var(--red-soft);
+}
+
+/* Кнопки: главное действие - жёлтая, второстепенное - тёмная. */
+.btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: 0;
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #2e2a3a;
+  color: var(--text);
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn.small {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Формы. */
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.form input {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+}
+
+/* Сообщения: итог действия и ошибка. */
+.alert {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.alert.error {
+  background: var(--red-bg);
+  border-color: #8a2a3b;
+}
+
+.verdict {
+  margin: 0;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.verdict.bad {
+  color: var(--red-soft);
+}
+
+.draws {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.draws li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.draws a {
+  flex: 1 1 200px;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
