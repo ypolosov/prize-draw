@@ -35,3 +35,17 @@
 docker compose up -d --build --wait     # http://127.0.0.1:8090
 E2E_BASE_URL=http://127.0.0.1:8090 npm run e2e
 ```
+
+## Как запустить проверки локально
+
+Команды выполняются из корня репозитория (сначала `npm install`).
+
+- `npm run lint` - линтер Biome и проверка границ слоёв в `api/src` и `web/src`.
+- `npm run format:check` - проверка форматирования; `npm run format` форматирует файлы.
+- `npm run typecheck` - проверка типов API, веба и e2e.
+- `npm test` - модульные тесты API и веба (Vitest).
+- `npm run build` - сборка API и веба.
+- `npm run e2e` - сквозные проверки из `e2e`.
+- `npm run spec:validate` - проверка спецификаций OpenSpec.
+- `npm run build -w api` / `npm run start -w api` - сборка и запуск API.
+- `npm run dev -w web` / `npm run build -w web` - dev-сервер и сборка веба.
