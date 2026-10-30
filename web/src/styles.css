@@ -413,3 +413,57 @@ code {
   font-weight: 700;
   text-decoration: none;
 }
+
+/* Состояние повтора: основная колонка с призами и список победителей справа. */
+.redraw-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+}
+
+.prize-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.prize-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.prize-grid p,
+.verification p,
+.verification h2 {
+  margin: 0;
+}
+
+.verification {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+@media (max-width: 1100px) {
+  .redraw-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .prize-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .display {
+    font-size: 26px;
+  }
+}

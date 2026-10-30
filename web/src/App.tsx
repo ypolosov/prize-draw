@@ -2,8 +2,8 @@
 // проверкой честности (участник). Адреса: #/ и #/draws/<id>. Вид - по макетам дизайнера,
 // классы - из styles.css.
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
-import { ApiError, api, type Draw, type Winner } from './api';
-import { pickWinners, sha256 } from './verify';
+import { ApiError, api, type Draw } from './api';
+import { Results } from './Results';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ru-RU');
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : 'API недоступен');
@@ -89,36 +89,6 @@ function DrawList() {
   );
 }
 
-function Fairness({ draw }: { draw: Draw }) {
-  const [result, setResult] = useState('проверяю...');
-  const [ok, setOk] = useState(true);
-  useEffect(() => {
-    const { seed, participants } = draw;
-    if (!seed || !participants) return;
-    (async () => {
-      const hashOk = (await sha256(seed)) === draw.seedHash;
-      const again = await pickWinners(seed, participants, draw.prizes);
-      const winnersOk = again.join() === draw.winners.map((w) => w.participant).join();
-      setOk(hashOk && winnersOk);
-      setResult(
-        hashOk && winnersOk ? 'результат честный: зерно и победители сходятся' : 'результат НЕ сходится с зерном',
-      );
-    })();
-  }, [draw]);
-  return (
-    <p data-testid="fairness" className={ok ? 'verdict' : 'verdict bad'}>
-      {result}
-    </p>
-  );
-}
-
-// Состояние приза победителя: текст и цвет.
-function prizeStatus(w: Winner): { text: string; tone: string } {
-  if (w.status === 'confirmed') return { text: 'приз подтверждён', tone: 'status ok' };
-  if (w.status === 'unclaimed') return { text: 'не востребован', tone: 'status bad' };
-  return { text: `подтвердить до ${fmt(w.confirmBy)}`, tone: 'status' };
-}
-
 function DrawPage({ id }: { id: number }) {
   const [draw, setDraw] = useState<Draw>();
   const [participant, setParticipant] = useState('');
@@ -151,16 +121,24 @@ function DrawPage({ id }: { id: number }) {
       <p>
         <a href="#/">все розыгрыши</a>
       </p>
-      <section className="hero">
-        <span className="badge">{stage}</span>
-        <h2 className="display">{draw.title}</h2>
-        <p className="lead">
-          Призов: {draw.prizes}. Заявок: {draw.entries}. Приём заявок: {fmt(draw.opensAt)} - {fmt(draw.closesAt)}.
-        </p>
-        <p className="muted">
-          Хэш зерна (R4): <code data-testid="seed-hash">{draw.seedHash}</code>
-        </p>
-      </section>
+      {draw.drawnAt ? (
+        <div className="actions">
+          <span className="chip">{draw.entries} участников</span>
+          <span className="chip">{draw.prizes} приза</span>
+          <h2>{draw.title}</h2>
+        </div>
+      ) : (
+        <section className="hero">
+          <span className="badge">{stage}</span>
+          <h2 className="display">{draw.title}</h2>
+          <p className="lead">
+            Призов: {draw.prizes}. Заявок: {draw.entries}. Приём заявок: {fmt(draw.opensAt)} - {fmt(draw.closesAt)}.
+          </p>
+          <p className="muted">
+            Хэш зерна: <code data-testid="seed-hash">{draw.seedHash}</code>
+          </p>
+        </section>
+      )}
       {open && (
         <section className="panel">
           <h3 className="section-title">Заявка на участие</h3>
@@ -214,36 +192,12 @@ function DrawPage({ id }: { id: number }) {
       {message && <Message text={message} error={failed} />}
       {draw.drawnAt && (
         <>
-          <section className="panel">
-            <h3 className="section-title">Победители</h3>
-            <ol className="winners">
-              {draw.winners.map((w) => {
-                const s = prizeStatus(w);
-                return (
-                  <li className="winner" key={w.position}>
-                    <span className="place">{w.position}</span>
-                    <span className="winner-name">{w.participant}</span>
-                    <span className={s.tone}>{s.text}</span>
-                    {w.status === 'pending' && (
-                      <button
-                        className="btn primary small"
-                        type="button"
-                        onClick={() => void act(() => api.confirm(id, w.position, w.participant), 'приз подтверждён')}
-                      >
-                        Подтвердить
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
+          <Results draw={draw} update={setDraw} />
           <section className="panel">
             <h3 className="section-title">Честная игра</h3>
             <p className="muted">
               Зерно: <code data-testid="seed">{draw.seed}</code>
             </p>
-            <Fairness draw={draw} />
           </section>
         </>
       )}
