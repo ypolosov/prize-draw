@@ -1,5 +1,6 @@
 // Клиент API розыгрыша: ошибки правил приходят с кодом правила (R1-R6).
 export interface Winner {
+  selection: number;
   position: number;
   participant: string;
   status: 'pending' | 'confirmed' | 'unclaimed';
@@ -18,6 +19,7 @@ export interface Draw {
   drawnAt?: string;
   participants?: string[];
   winners: Winner[];
+  selectionHistory?: Winner[];
 }
 
 export class ApiError extends Error {
@@ -51,6 +53,7 @@ export const api = {
     call<{ participant: string }>('POST', `/draws/${id}/entries`, { participant, birthDate }),
   close: (id: number) => call<Draw>('POST', `/draws/${id}/close`),
   draw: (id: number) => call<Draw>('POST', `/draws/${id}/draw`),
+  redraw: (id: number, position: number) => call<Draw>('POST', `/draws/${id}/winners/${position}/redraw`),
   confirm: (id: number, position: number, participant: string) =>
     call<Draw>('POST', `/draws/${id}/winners/${position}/confirm`, { participant }),
 };

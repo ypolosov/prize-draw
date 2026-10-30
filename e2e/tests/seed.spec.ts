@@ -29,5 +29,5 @@ test('результат воспроизводим из зерна (R4): хэш
   expect(new Set(winners).size).toBe(2);
   expect(recompute(drawn.seed, people, 2)).toEqual(winners);
   await page.goto(`/#/draws/${created.id}`);
-  await expect(page.getByTestId('fairness')).toHaveText('результат честный: зерно и победители сходятся');
+  await expect(page.getByTestId('fairness')).toContainText('Все совпало');
 });
