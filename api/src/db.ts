@@ -29,7 +29,29 @@ CREATE TABLE IF NOT EXISTS winners (
   confirmed_at timestamptz,
   PRIMARY KEY (draw_id, position),
   UNIQUE (draw_id, participant)
-);`;
+);
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS selection int;
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS selected_at timestamptz;
+ALTER TABLE winners ADD COLUMN IF NOT EXISTS replaced_at timestamptz;
+UPDATE winners SET selection = position WHERE selection IS NULL;
+ALTER TABLE winners ALTER COLUMN selection SET NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'winners'::regclass AND conname = 'winners_pkey'
+      AND contype = 'p'
+      AND conkey = ARRAY[
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'winners'::regclass AND attname = 'draw_id'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid = 'winners'::regclass AND attname = 'position')
+      ]
+  ) THEN
+    ALTER TABLE winners DROP CONSTRAINT winners_pkey;
+    ALTER TABLE winners ADD PRIMARY KEY (draw_id, selection);
+  END IF;
+END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS winners_active_position ON winners (draw_id, position) WHERE replaced_at IS NULL;
+`;
 
 @Injectable()
 export class Db implements OnModuleInit, OnModuleDestroy {
