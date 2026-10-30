@@ -25,6 +25,10 @@ export function ageOn(birthDate: string, on: Date): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
   if (!m) throw new RuleViolation('R3', 'дата рождения - в виде ГГГГ-ММ-ДД');
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const leapYear = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (y < 1 || mo < 1 || mo > 12 || d < 1 || d > (daysInMonth[mo - 1] ?? 0))
+    throw new RuleViolation('R3', 'дата рождения должна быть существующей календарной датой');
   let age = on.getUTCFullYear() - y;
   if (on.getUTCMonth() + 1 < mo || (on.getUTCMonth() + 1 === mo && on.getUTCDate() < d)) age--;
   return age;
