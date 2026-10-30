@@ -1,6 +1,9 @@
-import { expect, it } from 'vitest';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { expect, it, vi } from 'vitest';
 import type { Draw, Winner } from '../src/api';
-import { prizeView } from '../src/prize';
+import { prizeView, redrawPrize } from '../src/prize';
+import { Results } from '../src/Results';
 import { pickWinners, sha256, verifyDraw } from '../src/verify';
 
 const winner: Winner = {
@@ -10,6 +13,49 @@ const winner: Winner = {
   status: 'unclaimed',
   confirmBy: '2026-10-18T00:00:00Z',
 };
+
+const drawWith = (winners: Winner[]): Draw => ({
+  id: 144,
+  title: 'Весенний розыгрыш',
+  prizes: winners.length,
+  entries: 4,
+  opensAt: '',
+  closesAt: '',
+  seedHash: '',
+  winners,
+});
+
+it.each(['pending', 'confirmed', 'unclaimed'] as const)(
+  'показывает кнопку повтора только для невостребованного приза: %s',
+  (status) => {
+    const draw = drawWith([{ ...winner, status }]);
+    const html = renderToStaticMarkup(createElement(Results, { draw, update: vi.fn() }));
+    const buttons = html.match(/<button[^>]*>Разыграть заново<\/button>/g) ?? [];
+    expect(buttons).toHaveLength(status === 'unclaimed' ? 2 : 0);
+  },
+);
+
+it('действие кнопки вызывает повтор нужного приза и показывает нового победителя', async () => {
+  const draw = drawWith([winner]);
+  const replacement: Winner = { ...winner, selection: 2, participant: 'Олег Т.', status: 'pending' };
+  const repeated = { ...draw, winners: [replacement], selectionHistory: [winner, replacement] };
+  const request = vi.fn().mockResolvedValue(repeated);
+
+  const updated = await redrawPrize(draw, winner.position, request);
+
+  expect(request).toHaveBeenCalledExactlyOnceWith(144, 1);
+  const html = renderToStaticMarkup(createElement(Results, { draw: updated, update: vi.fn() }));
+  expect(html).toContain('У приза новый победитель — Олег Т.');
+  expect(html).toContain('Победитель: Олег Т.');
+  expect(html).not.toContain('Разыграть заново</button>');
+});
+
+it.each(['pending', 'confirmed'] as const)('не вызывает повтор для приза со статусом %s', async (status) => {
+  const draw = drawWith([{ ...winner, status }]);
+  const request = vi.fn();
+  await expect(redrawPrize(draw, winner.position, request)).rejects.toThrow();
+  expect(request).not.toHaveBeenCalled();
+});
 
 it('невостребованный приз предлагает повтор, подтверждённый — нет', () => {
   expect(prizeView(winner).canRedraw).toBe(true);

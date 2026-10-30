@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, type Draw } from './api';
-import { prizeView } from './prize';
+import { prizeView, redrawPrize } from './prize';
 import { verifyDraw } from './verify';
 
 export function Results({ draw, update }: { draw: Draw; update: (draw: Draw) => void }) {
@@ -29,7 +29,7 @@ export function Results({ draw, update }: { draw: Draw; update: (draw: Draw) => 
     setBusy(true);
     setError('');
     try {
-      update(await api.redraw(draw.id, position));
+      update(await redrawPrize(draw, position, api.redraw));
     } catch (e) {
       setError(
         e instanceof ApiError && e.message.includes('кандидатов')
