@@ -77,3 +77,17 @@ export function checkTitle(title: unknown): string | null {
     return `название должно быть от ${TITLE_MIN} до ${TITLE_MAX} символов`;
   return null;
 }
+
+// Повтор использует следующий шаг и исключает всю историю выбора, включая невостребованные призы.
+export function pickReplacement(seed: string, participants: string[], selected: string[]): string | undefined {
+  const excluded = new Set(selected);
+  const pool = [...new Set(participants)].sort().filter((participant) => !excluded.has(participant));
+  if (!pool.length) return undefined;
+  const n = createHmac('sha256', seed).update(`pick:${selected.length}`).digest().readBigUInt64BE(0);
+  return pool[Number(n % BigInt(pool.length))];
+}
+
+export function checkRedraw(selectedAt: Date, confirmedAt: Date | null, now: Date): void {
+  if (confirmedAt) throw new RuleViolation('R6', 'приз уже подтверждён');
+  if (now <= confirmDeadline(selectedAt)) throw new RuleViolation('R6', 'срок подтверждения ещё не истёк');
+}

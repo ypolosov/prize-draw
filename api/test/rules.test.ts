@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { ageOn, checkConfirm, checkEntry, checkTitle, pickWinners, RuleViolation, seedHash } from '../src/domain/rules';
+import {
+  ageOn,
+  checkConfirm,
+  checkEntry,
+  checkRedraw,
+  checkTitle,
+  pickReplacement,
+  pickWinners,
+  RuleViolation,
+  seedHash,
+} from '../src/domain/rules';
 
 const period = { opensAt: new Date('2026-10-01T00:00:00Z'), closesAt: new Date('2026-10-10T00:00:00Z') };
 const rule = (f: () => void) => {
@@ -66,5 +76,23 @@ describe('название розыгрыша', () => {
   it('отклоняет не строку', () => {
     expect(checkTitle(undefined)).toContain('строк');
     expect(checkTitle(42)).toContain('строк');
+  });
+});
+
+describe('DRAW-143: повтор невостребованного приза', () => {
+  it('продолжает последовательность и исключает всех прежних победителей', () => {
+    const people = ['a', 'b', 'c', 'd', 'e'];
+    const sequence = pickWinners('seed', people, people.length);
+    expect(pickReplacement('seed', people.reverse(), sequence.slice(0, 2))).toBe(sequence[2]);
+    expect(pickReplacement('seed', people, sequence.slice(0, 3))).toBe(sequence[3]);
+    expect(pickReplacement('seed', people, sequence)).toBeUndefined();
+  });
+
+  it('разрешает повтор только после срока неподтверждённого приза', () => {
+    const drawn = new Date('2026-10-10T00:00:00Z');
+    const deadline = new Date('2026-10-13T00:00:00Z');
+    expect(() => checkRedraw(drawn, null, deadline)).toThrow('срок');
+    expect(() => checkRedraw(drawn, null, new Date(deadline.getTime() + 1))).not.toThrow();
+    expect(() => checkRedraw(drawn, drawn, new Date(deadline.getTime() + 1))).toThrow('подтверждён');
   });
 });
